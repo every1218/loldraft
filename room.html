@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoL Draft – 대기실</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <!-- ─── 헤더 ──────────────────────────────────────────────────── -->
+  <header class="room-header">
+    <a href="index.html" class="header-logo">LoL Draft</a>
+    <div class="header-center">
+      <span class="room-code-badge" id="room-code-display">------</span>
+      <button class="copy-link-btn" id="copy-link-btn">🔗 링크 복사</button>
+    </div>
+    <div class="header-right">
+      <button class="btn-destroy-room hidden" id="destroy-room-btn" title="방 폭파 (방장 전용)">💣 방 폭파</button>
+      <div class="player-count-badge">
+        참가 <span id="active-count-hdr">0</span>/<span id="max-count-hdr">10</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── 토스트 ─────────────────────────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══ 로딩 ════════════════════════════════════════════════════ -->
+  <div class="section" id="loading-section">
+    <div class="loading-center">
+      <div class="spinner"></div>
+      <p style="color:var(--text-secondary)">방 정보를 불러오는 중...</p>
+    </div>
+  </div>
+
+  <!-- ═══ 에러 ════════════════════════════════════════════════════ -->
+  <div class="section hidden" id="error-section">
+    <div class="error-card">
+      <div class="error-icon">⚠️</div>
+      <h2>오류 발생</h2>
+      <p id="error-message">알 수 없는 오류입니다.</p>
+      <a href="index.html" class="btn btn-primary">홈으로 돌아가기</a>
+    </div>
+  </div>
+
+  <!-- ═══ 참가 폼 ══════════════════════════════════════════════════ -->
+  <div class="section hidden" id="join-section">
+    <div class="join-wrapper">
+      <div class="join-card">
+        <h2>⚔ 내전 참가</h2>
+        <form id="join-form" autocomplete="off">
+
+          <!-- 닉네임 -->
+          <div class="form-group">
+            <label for="nickname-input">라이엇 닉네임</label>
+            <input type="text" id="nickname-input" placeholder="닉네임#KR1" required maxlength="60">
+          </div>
+
+          <!-- 최고티어 -->
+          <div class="form-group">
+            <label for="tier-select">최고티어(15~16시즌)</label>
+            <div class="tier-select-container">
+              <img id="tier-select-icon" class="tier-select-preview" src="img/silver.png" alt="티어 엠블럼">
+              <select id="tier-select">
+                <option value="실버3이하">실버3 이하 (브론즈/아이언 포함)</option>
+                <option value="실버2">실버2</option>
+                <option value="실버1">실버1</option>
+                <option value="골드4">골드4</option>
+                <option value="골드3">골드3</option>
+                <option value="골드2">골드2</option>
+                <option value="골드1">골드1</option>
+                <option value="플래티넘4">플래티넘4</option>
+                <option value="플래티넘3">플래티넘3</option>
+                <option value="플래티넘2">플래티넘2</option>
+                <option value="플래티넘1">플래티넘1</option>
+                <option value="에메랄드4">에메랄드4</option>
+                <option value="에메랄드3">에메랄드3</option>
+                <option value="에메랄드2">에메랄드2</option>
+                <option value="에메랄드1">에메랄드1</option>
+                <option value="다이아4">다이아4</option>
+                <option value="다이아3">다이아3</option>
+                <option value="다이아2">다이아2</option>
+                <option value="다이아1">다이아1</option>
+                <option value="마스터">마스터</option>
+                <option value="그랜드마스터">그랜드마스터</option>
+                <option value="챌린저">챌린저</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- LP (마스터+ 전용) -->
+          <div class="form-group hidden" id="lp-group">
+            <label for="lp-input">LP</label>
+            <input type="number" id="lp-input" min="0" max="9999" placeholder="0" value="0">
+          </div>
+
+          <!-- 희망 라인 -->
+          <div class="form-group">
+            <label>희망 라인 <span style="color:var(--gold)">*</span></label>
+            <div class="line-selector" id="main-line-selector"></div>
+          </div>
+
+          <!-- 부라인 -->
+          <div class="form-group">
+            <label>부라인 <span style="color:var(--text-dim);font-weight:400;">(선택, 복수 가능)</span></label>
+            <div class="line-selector" id="sub-line-selector"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full" id="join-submit-btn">
+            참가하기
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 대기실 ═══════════════════════════════════════════════════ -->
+  <div class="section hidden lobby-section" id="lobby-section">
+
+    <!-- 현재 명단 -->
+    <div class="section-header">
+      <div class="section-title" style="position:relative;display:flex;align-items:center;gap:8px">
+        <span>현재 명단</span>
+        <span class="count" id="active-count-lbl">0/10</span>
+
+        <!-- 팀 배정 불가 안내 버튼 (모든 사용자 접근 가능) -->
+        <button class="btn btn-cannot-assign hidden" id="cannot-assign-btn">
+          ⚠️ 팀 배정 불가
+        </button>
+
+        <!-- 팀 배정 불가 사유 팝오버 -->
+        <div class="cannot-assign-popover hidden" id="cannot-assign-popover">
+          <div class="popover-header">
+            <span>⚠️ 팀 배정 불가</span>
+            <button class="popover-close-btn" id="popover-close-btn">✕</button>
+          </div>
+          <div class="popover-body" id="cannot-assign-reason-text"></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <!-- 방장 전용: 플레이어 직접 추가 버튼 -->
+        <button class="btn btn-secondary hidden" id="add-player-btn" style="padding:4px 12px;font-size:0.8rem">
+          ➕ 직접 추가
+        </button>
+        <!-- 알고리즘, 점수, 조정 팝오버 버튼 그룹 -->
+        <div style="display:flex;align-items:center;gap:6px">
+
+          <!-- 1. 알고리즘 버튼 & 팝오버 -->
+          <div style="position:relative">
+            <button class="btn btn-outline" id="toggle-algo-btn" style="padding:4px 10px;font-size:0.8rem"
+              title="알고리즘 안내 보기">
+              🧠 알고리즘
+            </button>
+            <div class="info-popover hidden" id="algo-popover">
+              <div class="popover-header">
+                <span>🧠 팀 드래프트 알고리즘</span>
+                <button class="popover-close-btn" id="algo-close-btn">✕</button>
+              </div>
+              <div class="popover-body algo-popover-body">
+
+                <div class="algo-section-head">📌 STEP 0. 사전 검증</div>
+                <div class="algo-simple-group">
+                  <div class="algo-simple-item">
+                    <strong class="algo-item-title">팀 배정 가능 여부 확인</strong>
+                    <div class="algo-item-desc">
+                      • 현재 명단이 10명인지 확인<br>
+                      • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 검토
+                    </div>
+                  </div>
+                </div>
+
+                <div class="algo-section-head" style="margin-top:14px;">📌 STEP 1. 라인 배정 (백트래킹)</div>
+                <div class="algo-simple-group">
+                  <div class="algo-simple-item">
+                    <strong class="algo-item-title">1-1. 희망 라인 & 부라인 탐색</strong>
+                    <div class="algo-item-desc">
+                      • 선착순 기준 <span class="text-gold">주라인 → 부라인</span> 순서 배치
+                    </div>
+                  </div>
+
+                  <div class="algo-simple-item">
+                    <strong class="algo-item-title">1-2. 가지치기</strong>
+                    <div class="algo-item-desc">
+                      • 남은 인원으로 남은 라인을 채울 수 없는 탐색 경로는 즉시 중단<br>
+                      • 유효한 라인 배정 조합 수집 (최대 30개)
+                    </div>
+                  </div>
+                </div>
+
+                <div class="algo-section-head" style="margin-top:14px;">📌 STEP 2. 팀 나누기 & 밸런스 최적화</div>
+                <div class="algo-simple-group">
+                  <div class="algo-simple-item">
+                    <strong class="algo-item-title">2-1. 진영 조합 계산</strong>
+                    <div class="algo-item-desc">
+                      • 라인 배정 조합(최대 30개) × 라인별 블루/레드 분할(32가지) = <span class="text-gold">최대 960가지</span> 조합 전수 계산<br>
+                      • 티어/LP 기반 라인 점수 합산 후 팀 총점 비교
+                    </div>
+                  </div>
+
+                  <div class="algo-simple-item">
+                    <strong class="algo-item-title">2-2. 최적 조합 선별 & 지표</strong>
+                    <div class="algo-item-desc">
+                      • <strong>|블루팀 총점 - 레드팀 총점|</strong> 최소 순 정렬<br>
+                      • 진영 스왑 중복 제거 후 <strong>상위 10개 조합</strong> 저장<br>
+                      • 🟡 황밸 (≤5점) / 🟢 밸런스 양호 (≤15점) / 🔴 언밸 (>15점)
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 점수 버튼 & 팝오버 -->
+          <div style="position:relative">
+            <button class="btn btn-outline" id="toggle-score-btn" style="padding:4px 10px;font-size:0.8rem"
+              title="티어별 점수표 보기">
+              📊 점수
+            </button>
+            <div class="info-popover score-popover hidden" id="score-popover">
+              <div class="popover-header">
+                <span>📊 티어별 점수표</span>
+                <button class="popover-close-btn" id="score-close-btn">✕</button>
+              </div>
+              <div class="popover-body score-popover-body">
+                <div class="score-advantage-notice">
+                  <span class="notice-bullet">•</span> 상관없음 어드밴티지 : <span class="advantage-badge">-2점</span>
+                </div>
+                <img src="img/score.png" alt="티어별 점수표" class="score-table-img">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 조정 이력 팝오버 버튼 (모든 참가자 상시 표시) -->
+          <div style="position:relative">
+            <button class="btn btn-outline" id="toggle-log-btn" style="padding:4px 10px;font-size:0.8rem"
+              title="조정 이력 보기">
+              📋 조정
+            </button>
+
+            <!-- 조정 팝오버 -->
+            <div class="adjust-log-popover hidden" id="adjust-log-popover">
+              <div class="popover-header">
+                <span>📋 조정</span>
+                <button class="popover-close-btn" id="adjust-log-close-btn">✕</button>
+              </div>
+              <div class="popover-body adjust-log-body" id="adjust-log-list">
+                <p class="adjust-log-empty">조정 이력이 없습니다.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="players-grid" id="active-players-grid">
+      <!-- 플레이어 카드 -->
+    </div>
+
+    <!-- 대기 명단 (항상 표시) -->
+    <div class="waiting-section" id="waiting-section"
+      style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
+      <div class="section-header" style="margin-bottom:16px">
+        <div class="section-title">
+          대기 명단
+          <span class="count" id="waiting-count-lbl">0</span>
+        </div>
+      </div>
+      <div class="waiting-grid" id="waiting-players-grid">
+        <p style="color:var(--text-dim);font-size:0.85rem;padding:8px">대기 인원이 없습니다.</p>
+      </div>
+    </div>
+
+    <!-- 방장 전용 하단 바 -->
+    <div class="host-bar hidden" id="host-bar">
+      <button class="btn btn-gold assign-btn" id="assign-btn" disabled>
+        🎲 팀 배정하기
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ 방장 플레이어 추가 모달 ════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="add-player-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>플레이어 직접 추가</h3>
+        <button class="modal-close-btn" id="add-player-modal-close">✕</button>
+      </div>
+      <form id="add-player-form" autocomplete="off">
+        <div class="form-group">
+          <label for="add-nickname">라이엇 닉네임</label>
+          <input type="text" id="add-nickname" placeholder="닉네임#KR1" required maxlength="60">
+        </div>
+        <div class="form-group">
+          <label for="add-tier">최고티어(15~16시즌)</label>
+          <div class="tier-select-container">
+            <img id="add-tier-icon" class="tier-select-preview" src="img/silver.png" alt="티어 엠블럼">
+            <select id="add-tier">
+              <option value="실버3이하">실버3 이하</option>
+              <option value="실버2">실버2</option>
+              <option value="실버1">실버1</option>
+              <option value="골드4">골드4</option>
+              <option value="골드3">골드3</option>
+              <option value="골드2">골드2</option>
+              <option value="골드1">골드1</option>
+              <option value="플래티넘4">플래티넘4</option>
+              <option value="플래티넘3">플래티넘3</option>
+              <option value="플래티넘2">플래티넘2</option>
+              <option value="플래티넘1">플래티넘1</option>
+              <option value="에메랄드4">에메랄드4</option>
+              <option value="에메랄드3">에메랄드3</option>
+              <option value="에메랄드2">에메랄드2</option>
+              <option value="에메랄드1">에메랄드1</option>
+              <option value="다이아4">다이아4</option>
+              <option value="다이아3">다이아3</option>
+              <option value="다이아2">다이아2</option>
+              <option value="다이아1">다이아1</option>
+              <option value="마스터">마스터</option>
+              <option value="그랜드마스터">그랜드마스터</option>
+              <option value="챌린저">챌린저</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group hidden" id="add-lp-group">
+          <label for="add-lp">LP</label>
+          <input type="number" id="add-lp" min="0" max="9999" placeholder="0" value="0">
+        </div>
+        <div class="form-group">
+          <label>희망 라인 <span style="color:var(--gold)">*</span></label>
+          <div class="line-selector" id="add-main-line-selector"></div>
+        </div>
+        <div class="form-group">
+          <label>부라인 <span style="color:var(--text-dim);font-weight:400">(선택)</span></label>
+          <div class="line-selector" id="add-sub-line-selector"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button type="button" class="btn btn-outline" style="flex:1" id="add-as-waiting-btn">대기로 추가</button>
+          <button type="submit" class="btn btn-primary" style="flex:2">명단에 추가</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ 라인 변경 모달 ═════════════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="line-change-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="line-change-title">⚔️ 라인 변경</h3>
+        <button type="button" class="modal-close-btn" id="line-change-modal-close">✕</button>
+      </div>
+      <form id="line-change-form" autocomplete="off">
+        <input type="hidden" id="edit-player-id">
+        <!-- 희망 라인 -->
+        <div class="form-group">
+          <label>희망 라인 <span style="color:var(--gold)">*</span></label>
+          <div class="line-selector" id="edit-main-line-selector"></div>
+        </div>
+
+        <!-- 부라인 -->
+        <div class="form-group">
+          <label>부라인 <span style="color:var(--text-dim);font-weight:400">(선택, 복수 가능)</span></label>
+          <div class="line-selector" id="edit-sub-line-selector"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button type="button" class="btn btn-outline" style="flex:1" id="line-change-cancel-btn">취소</button>
+          <button type="submit" class="btn btn-primary" style="flex:2">변경 완료</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══ 결과 ═════════════════════════════════════════════════════ -->
+  <div class="section hidden result-section" id="result-section">
+
+    <!-- 밸런스 표시 -->
+    <div class="balance-bar" id="balance-bar">
+      <span class="balance-badge" id="balance-badge"></span>
+      <span class="score-diff-text" id="score-diff-text"></span>
+    </div>
+
+    <!-- 팀 배치 -->
+    <div class="teams-container" id="teams-container">
+      <!-- 블루팀 -->
+      <div class="team-panel blue-team">
+        <div class="team-header">
+          <span class="team-name">🔵 블루팀</span>
+          <span class="team-score-val" id="blue-score-val">0점</span>
+        </div>
+        <div class="team-players" id="blue-players"></div>
+      </div>
+
+      <div class="vs-divider" id="vs-divider">VS</div>
+
+      <!-- 레드팀 -->
+      <div class="team-panel red-team">
+        <div class="team-header">
+          <span class="team-name">🔴 레드팀</span>
+          <span class="team-score-val" id="red-score-val">0점</span>
+        </div>
+        <div class="team-players" id="red-players"></div>
+      </div>
+    </div>
+
+    <!-- 조합 네비게이션 -->
+    <div class="result-controls">
+      <button class="btn btn-outline" id="prev-combo-btn">◀ 이전</button>
+      <span class="combo-index-text" id="combo-index-text">1 / 1</span>
+      <button class="btn btn-outline" id="next-combo-btn">다음 ▶</button>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="result-actions">
+      <button class="btn btn-secondary" id="copy-result-btn">📋 결과 복사</button>
+      <button class="btn btn-outline hidden" id="reset-result-btn">↩ 다시 배정</button>
+    </div>
+
+  </div>
+
+  <!-- ─── Firebase SDK ──────────────────────────────────────────── -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/scores.js"></script>
+  <script src="js/algorithm.js"></script>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════
+    //  ROOM.JS  –  대기실 및 팀 배정 로직
+    // ═══════════════════════════════════════════════════════════════════
+
+    // ─── 상태 변수 ──────────────────────────────────────────────────
+    let roomId = null;
+    let isHost = false;
+    let myPlayerId = null;
+    let playersMap = {};       // { playerId: {...playerData, id} }
+    let roomMeta = {};
+    let currentCombos = [];
+    let comboIndex = 0;
+
+    // ─── 유틸 ───────────────────────────────────────────────────────
+    function toast(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast toast-${type}`;
+      el.textContent = msg;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function showSection(name) {
+      ['loading', 'error', 'join', 'lobby', 'result'].forEach(s => {
+        document.getElementById(`${s}-section`).classList.toggle('hidden', s !== name);
+      });
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      showSection('error');
+    }
+
+    // ─── 헤더 업데이트 ───────────────────────────────────────────────
+    function updateHeader() {
+      const roomDisp = document.getElementById('room-code-display');
+      if (roomDisp) roomDisp.textContent = roomId || '';
+      const active = Object.values(playersMap).filter(p => p.status === 'active');
+      const activeHdr = document.getElementById('active-count-hdr');
+      if (activeHdr) activeHdr.textContent = active.length;
+    }
+
+    // ─── 소환사 아이콘 설정 (중복 없는 랜덤 분배) ───────────────────
+    const PROFILE_ICON_IDS = [
+      1104, 1105, 1107, 1113, 1114, 1153, 1159, 1232, 1295, 1296, 1297, 1298,
+      1301, 1376, 1377, 1385, 1387, 1391, 1437, 1439, 1441, 1443, 1445, 1458,
+      1630, 1635, 1643, 2073, 2075, 23, 28, 29, 3009, 3019, 3020, 3022,
+      3163, 3179, 3231, 3236, 3377, 3478, 3545, 3587, 3583, 3795, 3798, 4027,
+      4026, 4023, 4022, 4021, 4151, 4532, 4533, 4539, 4540, 4568, 4570, 4583,
+      4645, 4646, 4686, 4895, 4902, 4903, 5408, 5409, 5449, 577, 5769, 588,
+      6262, 6265, 6419, 6421, 981, 982, 983, 985, 979, 977, 937, 936,
+      908, 907, 906, 905, 904, 9, 8, 782, 783, 784, 778, 774
+    ];
+
+    function getProfileIconUrl(iconId) {
+      if (!iconId) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/4020.jpg`;
+      if (typeof iconId === 'string' && iconId.startsWith('http')) return iconId;
+      return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`;
+    }
+
+    function getRandomUnusedIconId() {
+      const usedIds = new Set(Object.values(playersMap).map(p => p.profileIcon).filter(Boolean));
+      const available = PROFILE_ICON_IDS.filter(id => !usedIds.has(id));
+      const pool = available.length > 0 ? available : PROFILE_ICON_IDS;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function getPlayerProfileIcon(player) {
+      if (player && player.profileIcon) {
+        return getProfileIconUrl(player.profileIcon);
+      }
+      if (player && player.id) {
+        const allPlayers = Object.values(playersMap).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        const pIndex = allPlayers.findIndex(p => p.id === player.id);
+        const assignedId = PROFILE_ICON_IDS[(pIndex >= 0 ? pIndex : 0) % PROFILE_ICON_IDS.length];
+        return getProfileIconUrl(assignedId);
+      }
+      return getProfileIconUrl(4020);
+    }
+
+    // ─── 플레이어 카드 HTML 생성 ──────────────────────────────────────
+    function buildPlayerCard(player, isWaiting) {
+      const tier = getEffectiveTier(player);
+      const tierClass = getTierClass(tier);
+      const isMe = player.id === myPlayerId;
+      const isHostPlayer = (roomMeta.hostPlayerId && player.id === roomMeta.hostPlayerId) || (isHost && isMe);
+      const adjusted = player.adjustedTier && player.adjustedTier !== player.tier;
+      const opggNick = encodeURIComponent((player.nickname || '').replace('#', '-'));
+      const tierLabel = getTierLabel(player);
+      const profileIconUrl = getPlayerProfileIcon(player);
+
+      const hostBadgeHTML = isHostPlayer ? '<span class="host-badge-card">방장</span>' : '';
+      const meBadgeHTML = isMe ? '<span class="me-badge">나</span>' : '';
+      const topBadgesHTML = (hostBadgeHTML || meBadgeHTML) ? `
+        <div class="card-top-badges">
+          ${hostBadgeHTML}
+          ${meBadgeHTML}
+        </div>` : '';
+
+      // 점수 계산 (주라인 점수 또는 상관없음 시 5라인 중앙값 표시)
+      let scoreTagHTML = '';
+      const scoresObj = getScoreForPlayer(tier, player.lp);
+      if (scoresObj) {
+        if (player.mainLine && player.mainLine !== 'all' && scoresObj[player.mainLine]) {
+          scoreTagHTML = `<span class="player-score-tag">${scoresObj[player.mainLine]}점</span>`;
+        } else if (player.mainLine === 'all') {
+          const lineScores = LINES_ORDER.map(l => scoresObj[l]).filter(s => typeof s === 'number').sort((a, b) => a - b);
+          if (lineScores.length > 0) {
+            const median = lineScores[Math.floor(lineScores.length / 2)];
+            scoreTagHTML = `<span class="player-score-tag" title="5라인 중앙값 점수 (상관없음 어드밴티지 -2점 적용)">약 ${median}점 <span class="score-adv-text">(-2)</span></span>`;
+          }
+        }
+      }
+
+      // 부라인 아이콘 HTML (희망라인이 선택되고 부라인이 '상관없음'이거나 4개 선택된 경우, 희망라인 제외 4개 라인 이미지 모두 표시)
+      let sublineSectionHTML = '';
+      if (player.mainLine !== 'all' && player.subLines && player.subLines.length > 0) {
+        let subList = player.subLines.filter(l => l !== 'all');
+        if (player.subLines.includes('all') || subList.length >= 4) {
+          subList = LINES_ORDER.filter(l => l !== player.mainLine);
+        }
+        if (subList.length > 0) {
+          const subIconsHTML = subList.map(l =>
+            `<div class="sub-line-circle" title="${LINE_NAMES[l]}"><img src="${LINE_ICONS[l]}" alt="${LINE_NAMES[l]}" class="sub-line-icon" onerror="this.parentElement.style.display='none'"></div>`
+          ).join('');
+          sublineSectionHTML = `<div class="card-subline-icons">${subIconsHTML}</div>`;
+        }
+      }
+      if (!sublineSectionHTML) {
+        sublineSectionHTML = `<div class="card-subline-icons empty-subline"></div>`;
+      }
+
+      let controlsHTML = '';
+
+      if (isHost) {
+        // 방장은 5개의 이미지 버튼 (1줄 그리드: 1.티어상향, 2.티어강등, 3.라인변경, 4.대기/투입, 5.퇴장)
+        const moveBtnHTML = isWaiting
+          ? `<button class="ctrl-btn-img" onclick="promoteToActive('${player.id}')" data-tooltip="명단으로 투입"><img src="img/명단으로 투입.png" alt="명단으로 투입"></button>`
+          : `<button class="ctrl-btn-img" onclick="moveToWaiting('${player.id}')" data-tooltip="대기로 이동"><img src="img/대기로 이동.png" alt="대기로 이동"></button>`;
+
+        controlsHTML = `
+      <div class="card-controls host-controls">
+        <button class="ctrl-btn-img" onclick="adjustTier('${player.id}', 1)" data-tooltip="티어상향"><img src="img/티어상향.png" alt="티어상향"></button>
+        <button class="ctrl-btn-img" onclick="adjustTier('${player.id}', -1)" data-tooltip="티어강등"><img src="img/티어강등.png" alt="티어강등"></button>
+        <button class="ctrl-btn-img" onclick="openLineChangeModal('${player.id}')" data-tooltip="라인변경"><img src="img/라인변경.png" alt="라인변경"></button>
+        ${moveBtnHTML}
+        <button class="ctrl-btn-img ctrl-danger" onclick="removePlayer('${player.id}')" data-tooltip="퇴장"><img src="img/퇴장.png" alt="퇴장"></button>
+      </div>`;
+      } else if (isMe) {
+        // 참가자는 본인 카드에만 3개의 이미지 버튼 (1줄 그리드, 가운데 정렬)
+        const moveBtnHTML = isWaiting
+          ? `<button class="ctrl-btn-img" onclick="promoteToActive('${player.id}')" data-tooltip="명단으로 투입"><img src="img/명단으로 투입.png" alt="명단으로 투입"></button>`
+          : `<button class="ctrl-btn-img" onclick="moveToWaiting('${player.id}')" data-tooltip="대기로 이동"><img src="img/대기로 이동.png" alt="대기로 이동"></button>`;
+
+        controlsHTML = `
+      <div class="card-controls player-controls">
+        <button class="ctrl-btn-img" onclick="openLineChangeModal('${player.id}')" data-tooltip="라인변경"><img src="img/라인변경.png" alt="라인변경"></button>
+        ${moveBtnHTML}
+        <button class="ctrl-btn-img ctrl-danger" onclick="removePlayer('${player.id}')" data-tooltip="퇴장"><img src="img/퇴장.png" alt="퇴장"></button>
+      </div>`;
+      } else {
+        controlsHTML = `<div class="card-controls empty-controls"></div>`;
+      }
+
+      return `
+    <div class="player-card ${tierClass} ${isMe ? 'my-card' : ''} ${isWaiting ? 'waiting-card' : ''}" data-pid="${player.id}">
+      <div class="card-tier-row">
+        <img src="${TIER_ICONS[tier] || ''}" alt="${tier}" class="tier-icon"
+             onerror="this.style.display='none'">
+        <div class="card-tier-info">
+          <div class="card-tier-title">${tierLabel}</div>
+          <div class="card-tier-sub">
+            ${scoreTagHTML}
+            ${adjusted ? '<span class="adjusted-badge">조정</span>' : ''}
+          </div>
+        </div>
+        ${topBadgesHTML}
+      </div>
+      <div class="card-center-section">
+        <div class="main-line-circle" title="희망: ${LINE_NAMES[player.mainLine] || ''}">
+          <img src="${LINE_ICONS[player.mainLine] || ''}" alt="${LINE_NAMES[player.mainLine] || ''}"
+               class="main-line-icon" onerror="this.style.display='none'">
+        </div>
+        ${sublineSectionHTML}
+      </div>
+      <div class="card-nickname-row">
+        <div class="profile-icon-circle">
+          <img src="${profileIconUrl}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
+        </div>
+        <a href="https://www.op.gg/summoners/kr/${opggNick}" target="_blank"
+           class="card-nickname">${player.nickname}</a>
+      </div>
+      ${controlsHTML}
+    </div>`;
+    }
+
+    // ─── 로비 렌더링 ─────────────────────────────────────────────────
+    function renderLobby() {
+      const all = Object.values(playersMap).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+      const active = all.filter(p => p.status === 'active');
+      const waiting = all.filter(p => p.status === 'waiting');
+
+      document.getElementById('active-players-grid').innerHTML =
+        active.length ? active.map(p => buildPlayerCard(p, false)).join('') :
+          '<p style="color:var(--text-dim);padding:16px">아직 참가자가 없습니다.</p>';
+
+      document.getElementById('active-count-lbl').textContent = `${active.length}/10`;
+
+      // 대기 명단 항상 표시
+      document.getElementById('waiting-players-grid').innerHTML =
+        waiting.length
+          ? waiting.map(p => buildPlayerCard(p, true)).join('')
+          : '<p style="color:var(--text-dim);font-size:0.85rem;padding:8px">대기 인원이 없습니다.</p>';
+      document.getElementById('waiting-count-lbl').textContent = waiting.length;
+
+      // 10명 정원에 도달했을 때 팀 배정 가능 여부 사전 검증
+      let canAssign = false;
+      let invalidReason = '';
+      if (active.length === 10) {
+        const validation = validateForAssignment(active);
+        if (validation.valid) {
+          canAssign = true;
+        } else {
+          invalidReason = validation.reason || '라인 배정이 불가능합니다.';
+        }
+      }
+
+      const cannotBtn = document.getElementById('cannot-assign-btn');
+      if (active.length === 10 && !canAssign) {
+        cannotBtn?.classList.remove('hidden');
+        const reasonTextEl = document.getElementById('cannot-assign-reason-text');
+        if (reasonTextEl) reasonTextEl.textContent = invalidReason;
+      } else {
+        cannotBtn?.classList.add('hidden');
+        document.getElementById('cannot-assign-popover')?.classList.add('hidden');
+      }
+
+      document.getElementById('destroy-room-btn')?.classList.toggle('hidden', !isHost);
+
+      if (isHost) {
+        document.getElementById('host-bar').classList.remove('hidden');
+        document.getElementById('add-player-btn').classList.remove('hidden');
+        document.getElementById('assign-btn').disabled = !canAssign;
+      }
+    }
+
+    // ─── 결과 렌더링 ─────────────────────────────────────────────────
+    function renderResult() {
+      const combo = currentCombos[comboIndex];
+      if (!combo) return;
+      const balance = getBalanceLabel(combo.scoreDiff);
+
+      // 밸런스 바
+      const badge = document.getElementById('balance-badge');
+      if (badge) {
+        badge.textContent = `${balance.emoji} ${balance.label}`;
+        badge.className = `balance-badge ${balance.cls}`;
+      }
+      const scoreDiffEl = document.getElementById('score-diff-text');
+      if (scoreDiffEl) scoreDiffEl.textContent = `점수 차이: ${combo.scoreDiff}점`;
+
+      // 팀 점수
+      const blueScoreEl = document.getElementById('blue-score-val');
+      if (blueScoreEl) blueScoreEl.textContent = `${combo.blueScore}점`;
+      const redScoreEl = document.getElementById('red-score-val');
+      if (redScoreEl) redScoreEl.textContent = `${combo.redScore}점`;
+
+      // 팀원 목록
+      renderTeam('blue-players', combo.blue, combo.lineMap, combo.isSubLine);
+      renderTeam('red-players', combo.red, combo.lineMap, combo.isSubLine);
+
+      // 조합 네비
+      const comboIdxEl = document.getElementById('combo-index-text');
+      if (comboIdxEl) comboIdxEl.textContent = `${comboIndex + 1} / ${currentCombos.length}`;
+      const prevBtn = document.getElementById('prev-combo-btn');
+      if (prevBtn) prevBtn.disabled = comboIndex === 0;
+      const nextBtn = document.getElementById('next-combo-btn');
+      if (nextBtn) nextBtn.disabled = comboIndex === currentCombos.length - 1;
+
+      // 방장만 다시 배정 가능
+      const resetBtn = document.getElementById('reset-result-btn');
+      if (resetBtn) resetBtn.classList.toggle('hidden', !isHost);
+    }
+
+    function renderTeam(containerId, playerIds, lineMap, isSubLine) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (!playerIds || !Array.isArray(playerIds)) {
+        container.innerHTML = '';
+        return;
+      }
+      const rows = LINES_ORDER.map(line => {
+        const pid = playerIds.find(id => lineMap && lineMap[id] === line);
+        if (!pid) return '';
+        const p = playersMap[pid];
+        if (!p) return '';
+        const tier = getEffectiveTier(p);
+        const isSub = isSubLine && isSubLine[pid];
+        const opgg = encodeURIComponent((p.nickname || '').replace('#', '-'));
+
+        const scoresObj = getScoreForPlayer(tier, p.lp);
+        let lineScore = scoresObj ? scoresObj[line] : 0;
+        if (p.mainLine === 'all' && lineScore) {
+          lineScore = Math.round((lineScore - 2) * 10) / 10;
+        }
+        const scoreTextHTML = lineScore ? `<span class="result-score-text">(${lineScore}점)</span>` : '';
+
+        return `
+      <div class="result-player-row">
+        <div class="result-line-col">
+          <img src="${LINE_ICONS[line]}" alt="${LINE_NAMES[line]}"
+               class="result-line-icon" onerror="this.style.display='none'">
+          <span class="result-line-name">${LINE_NAMES[line]}</span>
+        </div>
+        <div class="result-nickname-col">
+          <div class="profile-icon-circle profile-icon-sm">
+            <img src="${getPlayerProfileIcon(p)}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
+          </div>
+          <a href="https://www.op.gg/summoners/kr/${opgg}" target="_blank"
+             class="result-nickname-link">${p.nickname}${isSub ? '<span class="sub-badge">부</span>' : ''}</a>
+        </div>
+        <div class="result-tier-col">
+          <img src="${TIER_ICONS[tier]}" alt="${tier}"
+               class="result-tier-icon" onerror="this.style.display='none'">
+          <span class="result-tier-text">${tier} ${scoreTextHTML}</span>
+        </div>
+      </div>`;
+      });
+      container.innerHTML = rows.join('');
+    }
+
+    // ─── 실시간 조정 이력 ─────────────────────────────────────────
+    let adjustLogList = [];
+
+    function pushAdjustLog(text) {
+      if (!roomId) return;
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('ko-KR', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timestamp = Date.now();
+      firebase.database().ref(`rooms/${roomId}/logs`).push({
+        timestamp,
+        timeStr,
+        text
+      });
+    }
+
+    function renderAdjustLogPopover() {
+      const toggleLogBtn = document.getElementById('toggle-log-btn');
+      if (toggleLogBtn) {
+        toggleLogBtn.textContent = adjustLogList.length > 0 ? `📋 조정(${adjustLogList.length})` : '📋 조정';
+      }
+
+      const listEl = document.getElementById('adjust-log-list');
+      if (!listEl) return;
+
+      if (adjustLogList.length === 0) {
+        listEl.innerHTML = '<p class="adjust-log-empty">조정 이력이 없습니다.</p>';
+        return;
+      }
+
+      function escapeHtml(str) {
+        return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      function renderLineIconsHTML(lineKeys) {
+        if (!lineKeys || lineKeys.length === 0) return '<span class="log-line-none">없음</span>';
+        return lineKeys.map(key => {
+          const iconUrl = LINE_ICONS[key];
+          const name = LINE_NAMES[key] || key;
+          if (!iconUrl) return `<span>${escapeHtml(name)}</span>`;
+          return `<img src="${iconUrl}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" class="log-line-icon" onerror="this.style.display='none'">`;
+        }).join(' ');
+      }
+
+      listEl.innerHTML = adjustLogList.map(entry => {
+        const text = entry.text || '';
+        let badgeHTML = '';
+        let contentHTML = '';
+
+        if (text.startsWith('[티어상향]')) {
+          badgeHTML = `<span class="log-badge badge-tier-up"><img src="img/티어상향.png" class="log-badge-icon"> 티어상향</span>`;
+          const detail = text.replace('[티어상향]', '').trim();
+          const parts = detail.split(':');
+          if (parts.length >= 2) {
+            const nick = parts[0].trim();
+            const change = parts.slice(1).join(':').trim();
+            contentHTML = `<strong class="log-nick">${escapeHtml(nick)}</strong>: <span class="log-val">${escapeHtml(change)}</span>`;
+          } else {
+            contentHTML = escapeHtml(detail);
+          }
+        } else if (text.startsWith('[티어강등]')) {
+          badgeHTML = `<span class="log-badge badge-tier-down"><img src="img/티어강등.png" class="log-badge-icon"> 티어강등</span>`;
+          const detail = text.replace('[티어강등]', '').trim();
+          const parts = detail.split(':');
+          if (parts.length >= 2) {
+            const nick = parts[0].trim();
+            const change = parts.slice(1).join(':').trim();
+            contentHTML = `<strong class="log-nick">${escapeHtml(nick)}</strong>: <span class="log-val">${escapeHtml(change)}</span>`;
+          } else {
+            contentHTML = escapeHtml(detail);
+          }
+        } else if (text.startsWith('[라인변경]')) {
+          badgeHTML = `<span class="log-badge badge-line-change"><img src="img/라인변경.png" class="log-badge-icon"> 라인변경</span>`;
+          const detail = text.replace('[라인변경]', '').trim();
+
+          const lineMatch = detail.match(/^(.*?):\s*(희망라인|부라인)\s*변경\s*\[(line|lines):(.*?)\]$/);
+          if (lineMatch) {
+            const nick = lineMatch[1].trim();
+            const changeType = lineMatch[2] + ' 변경';
+            const rawKeys = lineMatch[4].trim();
+            const keys = rawKeys ? rawKeys.split(',').map(k => k.trim()).filter(Boolean) : [];
+            const iconsHTML = renderLineIconsHTML(keys);
+            contentHTML = `<strong class="log-nick">${escapeHtml(nick)}</strong>: ${escapeHtml(changeType)} ${iconsHTML}`;
+          } else {
+            let nick = '';
+            let rest = detail;
+            const colonIdx = detail.indexOf(':');
+            if (colonIdx > 0 && !detail.startsWith('희망') && !detail.startsWith('부라인')) {
+              nick = detail.substring(0, colonIdx).trim();
+              rest = detail.substring(colonIdx + 1).trim();
+            } else {
+              const firstSpace = detail.indexOf(' ');
+              if (firstSpace > 0) {
+                nick = detail.substring(0, firstSpace).trim();
+                rest = detail.substring(firstSpace + 1).trim();
+              }
+            }
+
+            const KOR_MAP = { '탑': 'top', '정글': 'jungle', '미드': 'mid', '원딜': 'adc', '서폿': 'support', '상관없음': 'all' };
+            let parsedRest = escapeHtml(rest);
+            Object.keys(KOR_MAP).forEach(kor => {
+              if (rest.includes(kor)) {
+                const key = KOR_MAP[kor];
+                const iconHTML = `<img src="${LINE_ICONS[key]}" alt="${kor}" title="${kor}" class="log-line-icon" onerror="this.style.display='none'">`;
+                parsedRest = parsedRest.replace(new RegExp(escapeHtml(kor), 'g'), iconHTML);
+              }
+            });
+
+            contentHTML = nick ? `<strong class="log-nick">${escapeHtml(nick)}</strong>: ${parsedRest}` : parsedRest;
+          }
+        } else {
+          contentHTML = escapeHtml(text);
+        }
+
+        return `
+          <div class="adjust-log-item">
+            ${badgeHTML}
+            <div class="log-item-content">
+              ${contentHTML}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function adjustTier(playerId, dir) {
+      if (!isHost) return;
+      const p = playersMap[playerId];
+      if (!p) return;
+      const cur = getEffectiveTier(p);
+      const tag = dir > 0 ? '[티어상향]' : '[티어강등]';
+
+      if (MASTER_TIERS.includes(cur)) {
+        const curLp = parseInt(p.lp) || 0;
+        if (dir < 0 && curLp === 0) {
+          // 0LP에서 티어강등 시 다이아1로 강등
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set('다이아1');
+          pushAdjustLog(`${tag} ${p.nickname}: ${cur} 0LP → 다이아1`);
+        } else {
+          const newLp = Math.max(0, curLp + (dir * 100));
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(newLp);
+          pushAdjustLog(`${tag} ${p.nickname}: ${cur} ${curLp}LP → ${cur} ${newLp}LP`);
+        }
+      } else {
+        const idx = ALL_TIERS.indexOf(cur);
+        const newIdx = idx + dir;
+        if (newIdx < 0 || newIdx >= ALL_TIERS.length) return;
+        const newTier = ALL_TIERS[newIdx];
+        firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set(newTier);
+        if (MASTER_TIERS.includes(newTier) && p.lp == null) {
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(0);
+        }
+        pushAdjustLog(`${tag} ${p.nickname}: ${cur} → ${newTier}`);
+      }
+    }
+
+    // ─── 플레이어 기능: 퇴장 ────────────────────────────────────
+    function removePlayer(playerId) {
+      if (!isHost && playerId !== myPlayerId) return;
+      const p = playersMap[playerId];
+      if (!p) return;
+      const msg = (playerId === myPlayerId) ? '정말 퇴장하시겠습니까?' : `${p.nickname}님을 퇴장시키겠습니까?`;
+      if (!confirm(msg)) return;
+      firebase.database().ref(`rooms/${roomId}/players/${playerId}`).remove();
+      if (myPlayerId === playerId) {
+        localStorage.removeItem(`playerId_${roomId}`);
+        myPlayerId = null;
+      }
+    }
+
+    // ─── 플레이어 기능: 명단으로 투입 ────────────────────────────────────
+    function promoteToActive(playerId) {
+      if (!isHost && playerId !== myPlayerId) return;
+      const active = Object.values(playersMap).filter(p => p.status === 'active');
+      if (active.length >= 10) {
+        toast('현재 명단이 이미 10명입니다.', 'error');
+        return;
+      }
+      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('active');
+    }
+
+    // ─── 플레이어 기능: 대기로 이동 ──────────────────────────
+    function moveToWaiting(playerId) {
+      if (!isHost && playerId !== myPlayerId) return;
+      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('waiting');
+    }
+
+    // ─── 라인 변경 모달 로직 ─────────────────────────────────────────
+    function openLineChangeModal(playerId) {
+      if (!isHost && playerId !== myPlayerId) return;
+      const p = playersMap[playerId];
+      if (!p) return;
+
+      document.getElementById('edit-player-id').value = playerId;
+      document.getElementById('line-change-title').textContent = `⚔️ ${p.nickname} 라인 변경`;
+
+      const mainSel = document.getElementById('edit-main-line-selector');
+      mainSel.querySelectorAll('.line-btn').forEach(b => {
+        b.classList.toggle('selected', b.dataset.line === p.mainLine);
+      });
+
+      const subSel = document.getElementById('edit-sub-line-selector');
+      const subLines = p.subLines || [];
+      subSel.querySelectorAll('.line-btn').forEach(b => {
+        b.classList.toggle('selected', subLines.includes(b.dataset.line));
+      });
+
+      document.getElementById('line-change-modal').classList.remove('hidden');
+    }
+
+    function closeLineChangeModal() {
+      document.getElementById('line-change-modal').classList.add('hidden');
+    }
+
+    async function handleLineChangeSubmit(e) {
+      e.preventDefault();
+      const playerId = document.getElementById('edit-player-id').value;
+      const p = playersMap[playerId];
+      if (!p) return;
+
+      const newMainLine = document.querySelector('#edit-main-line-selector .line-btn.selected')?.dataset.line;
+      if (!newMainLine) {
+        toast('희망 라인을 선택해주세요.', 'error');
+        return;
+      }
+
+      let newSubLines = getSubLinesFromSelector('edit-sub-line-selector', newMainLine);
+
+      const oldMain = p.mainLine;
+      const oldSubArr = p.subLines || [];
+      const oldSubStr = [...oldSubArr].sort().join(',');
+      const newSubStr = [...newSubLines].sort().join(',');
+
+      try {
+        await firebase.database().ref(`rooms/${roomId}/players/${playerId}/mainLine`).set(newMainLine);
+        await firebase.database().ref(`rooms/${roomId}/players/${playerId}/subLines`).set(newSubLines);
+
+        // 희망라인 변경 로그
+        if (oldMain !== newMainLine) {
+          pushAdjustLog(`[라인변경] ${p.nickname}: 희망라인 변경 [line:${newMainLine}]`);
+        }
+
+        // 부라인 변경 로그
+        if (oldSubStr !== newSubStr) {
+          pushAdjustLog(`[라인변경] ${p.nickname}: 부라인 변경 [lines:${newSubLines.join(',')}]`);
+        }
+
+        toast(`${p.nickname}님의 라인이 변경되었습니다.`, 'success');
+        closeLineChangeModal();
+      } catch (err) {
+        toast('라인 변경 실패: ' + err.message, 'error');
+      }
+    }
+
+    // ─── 팀 배정 실행 ────────────────────────────────────────────────
+    function handleAssign() {
+      const active = Object.values(playersMap).filter(p => p.status === 'active');
+      const result = runTeamAssignment(active);
+
+      if (!result.success) {
+        alert('❌ 팀 배정 불가\n\n' + result.reason);
+        return;
+      }
+
+      firebase.database().ref(`rooms/${roomId}/result`).set({
+        combinations: result.combinations,
+        currentIndex: 0,
+        assignedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+
+    // ─── 결과 초기화 (방장) ──────────────────────────────────────────
+    function resetResult() {
+      if (!isHost) return;
+      firebase.database().ref(`rooms/${roomId}/result`).remove();
+    }
+
+    // ─── 결과 텍스트 복사 (카카오톡용) ──────────────────────────────
+    function copyResultText() {
+      const combo = currentCombos[comboIndex];
+      if (!combo) return;
+      const balance = getBalanceLabel(combo.scoreDiff);
+
+      let text = '🎮 내전 팀 배정 결과\n\n';
+      text += '🔵 블루팀\n';
+      LINES_ORDER.forEach(line => {
+        const pid = combo.blue.find(id => combo.lineMap[id] === line);
+        if (pid && playersMap[pid]) {
+          const isSub = combo.isSubLine[pid];
+          text += `  [${LINE_NAMES[line]}] ${playersMap[pid].nickname}${isSub ? ' (부)' : ''}\n`;
+        }
+      });
+      text += `  총점: ${combo.blueScore}점\n\n`;
+
+      text += '🔴 레드팀\n';
+      LINES_ORDER.forEach(line => {
+        const pid = combo.red.find(id => combo.lineMap[id] === line);
+        if (pid && playersMap[pid]) {
+          const isSub = combo.isSubLine[pid];
+          text += `  [${LINE_NAMES[line]}] ${playersMap[pid].nickname}${isSub ? ' (부)' : ''}\n`;
+        }
+      });
+      text += `  총점: ${combo.redScore}점\n\n`;
+      text += `${balance.emoji} 밸런스: ${balance.label} (점수 차이: ${combo.scoreDiff}점)`;
+
+      navigator.clipboard.writeText(text)
+        .then(() => toast('클립보드에 복사됐습니다!', 'success'))
+        .catch(() => {
+          // fallback
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          toast('복사됐습니다!', 'success');
+        });
+    }
+
+    // ─── 링크 복사 ──────────────────────────────────────────────────
+    function copyRoomLink() {
+      const url = location.origin + location.pathname.replace('room.html', '') + `room.html?room=${roomId}`;
+      navigator.clipboard.writeText(url)
+        .then(() => toast('링크가 복사됐습니다!', 'success'))
+        .catch(() => toast('복사 실패', 'error'));
+    }
+
+    // ─── Firebase 실시간 리스너 ──────────────────────────────────────
+    function onRoomUpdate(snapshot) {
+      try {
+        if (!snapshot || !snapshot.exists()) {
+          showError('방이 존재하지 않거나 삭제되었습니다.');
+          return;
+        }
+
+        const data = snapshot.val() || {};
+        roomMeta = data.meta || {};
+        const players = data.players || {};
+        const logs = data.logs || {};
+
+        playersMap = {};
+        for (const [pid, pdata] of Object.entries(players)) {
+          if (pdata) playersMap[pid] = { id: pid, ...pdata };
+        }
+
+        // 실시간 조정 이력 업데이트 (최신순)
+        try {
+          adjustLogList = Object.values(logs).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          renderAdjustLogPopover();
+        } catch (e) {
+          console.error('Error rendering adjust log popover:', e);
+        }
+
+        // 방장이 본인 ID를 DB에 등록하여 모두가 방장을 식별할 수 있게 함
+        if (isHost && myPlayerId && (!roomMeta.hostPlayerId || roomMeta.hostPlayerId !== myPlayerId)) {
+          firebase.database().ref(`rooms/${roomId}/meta/hostPlayerId`).set(myPlayerId);
+        }
+
+        try {
+          updateHeader();
+        } catch (e) {
+          console.error('Error updating header:', e);
+        }
+
+        // 결과 있으면 결과 화면
+        if (data.result && data.result.combinations && data.result.combinations.length > 0) {
+          currentCombos = data.result.combinations;
+          showSection('result');
+          try {
+            renderResult();
+          } catch (e) {
+            console.error('Error rendering result:', e);
+          }
+          return;
+        }
+
+        // 내가 이미 참가했는지 확인
+        if (myPlayerId && playersMap[myPlayerId]) {
+          showSection('lobby');
+          try {
+            renderLobby();
+          } catch (e) {
+            console.error('Error rendering lobby:', e);
+          }
+        } else {
+          showSection('join');
+        }
+      } catch (err) {
+        console.error('Critical onRoomUpdate Error:', err);
+        showError('방 정보를 불러오는 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+
+    // ─── 티어 아이콘 미리보기 업데이트 ─────────────────────────────────
+    function updateTierSelectIcon(selectId, iconId) {
+      const selectEl = document.getElementById(selectId);
+      const iconEl = document.getElementById(iconId);
+      if (selectEl && iconEl) {
+        iconEl.src = TIER_ICONS[selectEl.value] || 'img/silver.png';
+      }
+    }
+
+    // ─── 공통 라인 셀렉터 설정 ─────────────────────────────────────────
+    function setupLineSelector(mainSelId, subSelId) {
+      const mainSel = document.getElementById(mainSelId);
+      const subSel = document.getElementById(subSelId);
+      if (!mainSel || !subSel) return;
+
+      mainSel.innerHTML = '';
+      subSel.innerHTML = '';
+
+      SELECTOR_LINES.forEach(line => {
+        // 희망 라인 버튼
+        const mainBtn = document.createElement('button');
+        mainBtn.type = 'button';
+        mainBtn.className = 'line-btn';
+        mainBtn.dataset.line = line;
+        mainBtn.innerHTML = `
+          <img src="${LINE_ICONS[line]}" alt="${LINE_NAMES[line]}" onerror="this.style.display='none'">
+          <span>${LINE_NAMES[line]}</span>`;
+
+        mainBtn.addEventListener('click', () => {
+          mainSel.querySelectorAll('.line-btn').forEach(b => b.classList.remove('selected'));
+          mainBtn.classList.add('selected');
+
+          if (line === 'all') {
+            // 희망 라인이 '상관없음'인 경우: 부라인 모두 해제
+            subSel.querySelectorAll('.line-btn').forEach(b => b.classList.remove('selected'));
+          } else {
+            // 특정 희망 라인 선택 시: 동일 라인 부라인에서 해제
+            subSel.querySelector(`.line-btn[data-line="${line}"]`)?.classList.remove('selected');
+
+            // 만약 부라인 'all'이 선택되어 있었던 경우, 새로운 희망 라인을 제외한 나머지 4개 라인 자동 체크
+            const subAllBtn = subSel.querySelector(`.line-btn[data-line="all"]`);
+            if (subAllBtn && subAllBtn.classList.contains('selected')) {
+              LINES_ORDER.forEach(l => {
+                const b = subSel.querySelector(`.line-btn[data-line="${l}"]`);
+                if (b) {
+                  if (l === line) b.classList.remove('selected');
+                  else b.classList.add('selected');
+                }
+              });
+            }
+          }
+        });
+        mainSel.appendChild(mainBtn);
+
+        // 부라인 버튼
+        const subBtn = document.createElement('button');
+        subBtn.type = 'button';
+        subBtn.className = 'line-btn';
+        subBtn.dataset.line = line;
+        subBtn.innerHTML = `
+          <img src="${LINE_ICONS[line]}" alt="${LINE_NAMES[line]}" onerror="this.style.display='none'">
+          <span>${LINE_NAMES[line]}</span>`;
+
+        subBtn.addEventListener('click', () => {
+          const selectedMainLine = mainSel.querySelector('.line-btn.selected')?.dataset.line;
+
+          if (selectedMainLine === 'all') {
+            toast('희망 라인이 "상관없음"인 경우 부라인을 따로 선택하지 않아도 됩니다.', 'info');
+            return;
+          }
+
+          if (line === 'all') {
+            const isTurningOn = !subBtn.classList.contains('selected');
+            subBtn.classList.toggle('selected', isTurningOn);
+
+            LINES_ORDER.forEach(l => {
+              const b = subSel.querySelector(`.line-btn[data-line="${l}"]`);
+              if (!b) return;
+              if (isTurningOn) {
+                if (l !== selectedMainLine) b.classList.add('selected');
+                else b.classList.remove('selected');
+              } else {
+                b.classList.remove('selected');
+              }
+            });
+          } else {
+            if (selectedMainLine === line) {
+              toast('희망 라인과 동일한 라인은 부라인으로 선택할 수 없습니다.', 'error');
+              return;
+            }
+
+            subBtn.classList.toggle('selected');
+
+            // 4개 라인이 모두 선택되면 'all' 버튼도 selected 처리
+            const selectedSubLines = Array.from(subSel.querySelectorAll('.line-btn.selected'))
+              .map(b => b.dataset.line)
+              .filter(l => l !== 'all');
+
+            const availableCount = selectedMainLine ? 4 : 5;
+            const subAllBtn = subSel.querySelector(`.line-btn[data-line="all"]`);
+            if (subAllBtn) {
+              subAllBtn.classList.toggle('selected', selectedSubLines.length === availableCount);
+            }
+          }
+        });
+        subSel.appendChild(subBtn);
+      });
+    }
+
+    function initLineSelectors() {
+      setupLineSelector('main-line-selector', 'sub-line-selector');
+    }
+
+    function getSubLinesFromSelector(subSelId, mainLine) {
+      if (mainLine === 'all') {
+        return ['top', 'jungle', 'mid', 'adc', 'support'];
+      }
+      const subAllBtn = document.querySelector(`#${subSelId} .line-btn[data-line="all"]`);
+      if (subAllBtn && subAllBtn.classList.contains('selected')) {
+        return LINES_ORDER.filter(l => l !== mainLine);
+      }
+      return Array.from(document.querySelectorAll(`#${subSelId} .line-btn.selected`))
+        .map(el => el.dataset.line)
+        .filter(l => l !== 'all');
+    }
+
+    // ─── 참가 폼 제출 ────────────────────────────────────────────────
+    async function handleJoinSubmit(e) {
+      e.preventDefault();
+
+      const nickname = document.getElementById('nickname-input').value.trim();
+      const tier = document.getElementById('tier-select').value;
+      const lp = MASTER_TIERS.includes(tier) ? (parseInt(document.getElementById('lp-input').value) || 0) : null;
+      const mainLine = document.querySelector('#main-line-selector .line-btn.selected')?.dataset.line;
+      const subLines = getSubLinesFromSelector('sub-line-selector', mainLine);
+
+      if (!nickname) { toast('닉네임을 입력해주세요.', 'error'); return; }
+      if (!mainLine) { toast('희망 라인을 선택해주세요.', 'error'); return; }
+
+      const active = Object.values(playersMap).filter(p => p.status === 'active');
+      const status = active.length < 10 ? 'active' : 'waiting';
+
+      const profileIcon = getRandomUnusedIconId();
+
+      const playerData = {
+        nickname,
+        tier,
+        lp,
+        mainLine,
+        subLines,
+        profileIcon,
+        status,
+        joinedAt: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      const submitBtn = document.getElementById('join-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '참가 중...';
+
+      try {
+        const newRef = firebase.database().ref(`rooms/${roomId}/players`).push();
+        myPlayerId = newRef.key;
+        localStorage.setItem(`playerId_${roomId}`, myPlayerId);
+        await newRef.set(playerData);
+      } catch (err) {
+        console.error(err);
+        toast('참가 실패: ' + err.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '참가하기';
+      }
+    }
+
+    // ─── 초기화 ──────────────────────────────────────────────────────
+    function init() {
+      const params = new URLSearchParams(location.search);
+      roomId = params.get('room');
+
+      if (!roomId) { showError('유효하지 않은 링크입니다.'); return; }
+
+      // 5초 연결 타임아웃 방어
+      let loaded = false;
+      const timeoutId = setTimeout(() => {
+        if (!loaded) {
+          showError('방 정보를 불러오는 시간이 초과되었습니다.\n\n페이지를 새로고침하거나 Firebase 연결(인터넷) 상태를 확인해주세요.');
+        }
+      }, 5000);
+
+      // 방장 확인
+      const storedToken = localStorage.getItem(`hostToken_${roomId}`);
+      // 기존 참가 확인
+      myPlayerId = localStorage.getItem(`playerId_${roomId}`);
+
+      // Firebase 초기화
+      try { firebase.app(); } catch (e) { firebase.initializeApp(firebaseConfig); }
+
+      let wasRoomActive = false;
+      const roomRef = firebase.database().ref(`rooms/${roomId}`);
+
+      roomRef.on('value', snap => {
+        loaded = true;
+        clearTimeout(timeoutId);
+        try {
+          if (!snap.exists()) {
+            if (wasRoomActive) {
+              showError('💣 방장에 의해 방이 폭파(삭제)되었습니다.');
+            } else {
+              showError('존재하지 않는 방입니다. 링크를 다시 확인해주세요.');
+            }
+            return;
+          }
+          wasRoomActive = true;
+
+          const meta = snap.val().meta || {};
+
+          // 방 만료 확인
+          if (meta.expiresAt && Date.now() > meta.expiresAt) {
+            roomRef.remove();
+            showError('만료된 방입니다.');
+            return;
+          }
+
+          // 방장 여부 확인
+          if (storedToken && meta.hostToken === storedToken) {
+            isHost = true;
+          }
+
+          onRoomUpdate(snap);
+        } catch (err) {
+          console.error(err);
+          showError('방 데이터 처리 오류: ' + err.message);
+        }
+      }, err => {
+        loaded = true;
+        clearTimeout(timeoutId);
+        console.error(err);
+        showError('Firebase 연결 오류: ' + err.message + '\n\nfirebase-config.js 설정을 확인해주세요.');
+      });
+    }
+
+    // ─── 방장 플레이어 추가 모달 ─────────────────────────────────────
+    function initAddPlayerModal() {
+      setupLineSelector('add-main-line-selector', 'add-sub-line-selector');
+
+      document.getElementById('add-tier').addEventListener('change', function () {
+        updateTierSelectIcon('add-tier', 'add-tier-icon');
+        document.getElementById('add-lp-group').classList.toggle('hidden', !MASTER_TIERS.includes(this.value));
+      });
+    }
+
+    async function submitAddPlayer(forceWaiting) {
+      const nickname = document.getElementById('add-nickname').value.trim();
+      const tier = document.getElementById('add-tier').value;
+      const lp = MASTER_TIERS.includes(tier) ? (parseInt(document.getElementById('add-lp').value) || 0) : null;
+      const mainLine = document.querySelector('#add-main-line-selector .line-btn.selected')?.dataset.line;
+      const subLines = getSubLinesFromSelector('add-sub-line-selector', mainLine);
+
+      if (!nickname) { toast('닉네임을 입력해주세요.', 'error'); return; }
+      if (!mainLine) { toast('희망 라인을 선택해주세요.', 'error'); return; }
+
+      const active = Object.values(playersMap).filter(p => p.status === 'active');
+      const status = (forceWaiting || active.length >= 10) ? 'waiting' : 'active';
+      const profileIcon = getRandomUnusedIconId();
+
+      try {
+        await firebase.database().ref(`rooms/${roomId}/players`).push({
+          nickname, tier, lp, mainLine, subLines, profileIcon, status,
+          joinedAt: firebase.database.ServerValue.TIMESTAMP,
+          addedByHost: true
+        });
+
+        document.getElementById('add-player-modal').classList.add('hidden');
+        // 폼 초기화
+        document.getElementById('add-player-form').reset();
+        updateTierSelectIcon('add-tier', 'add-tier-icon');
+        document.querySelectorAll('#add-main-line-selector .line-btn, #add-sub-line-selector .line-btn').forEach(b => b.classList.remove('selected'));
+      } catch (err) {
+        toast('추가 실패: ' + err.message, 'error');
+      }
+    }
+
+    // ─── 방 폭파 (방장 전용) ─────────────────────────────────────────
+    async function handleDestroyRoom() {
+      if (!isHost) return;
+      if (!confirm('💣 정말로 이 방을 폭파하시겠습니까?\n방의 모든 참가자 정보와 데이터가 삭제되며 복구할 수 없습니다.')) {
+        return;
+      }
+      try {
+        localStorage.removeItem(`hostToken_${roomId}`);
+        await firebase.database().ref(`rooms/${roomId}`).remove();
+        toast('방이 폭파되었습니다.', 'info');
+        setTimeout(() => {
+          location.href = 'index.html';
+        }, 500);
+      } catch (err) {
+        toast('방 폭파 실패: ' + err.message, 'error');
+      }
+    }
+
+    // ─── 이벤트 등록 ─────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      initLineSelectors();
+      initAddPlayerModal();
+      setupLineSelector('edit-main-line-selector', 'edit-sub-line-selector');
+
+      // 티어 미리보기 초기화 & 이벤트
+      updateTierSelectIcon('tier-select', 'tier-select-icon');
+      updateTierSelectIcon('add-tier', 'add-tier-icon');
+
+      // 마스터+ 티어 LP 입력 & 티어 미리보기
+      document.getElementById('tier-select').addEventListener('change', function () {
+        updateTierSelectIcon('tier-select', 'tier-select-icon');
+        document.getElementById('lp-group').classList.toggle('hidden', !MASTER_TIERS.includes(this.value));
+      });
+
+      document.getElementById('join-form').addEventListener('submit', handleJoinSubmit);
+      document.getElementById('copy-link-btn').addEventListener('click', copyRoomLink);
+      document.getElementById('assign-btn')?.addEventListener('click', handleAssign);
+      document.getElementById('destroy-room-btn')?.addEventListener('click', handleDestroyRoom);
+
+      // 라인 변경 모달 이벤트
+      document.getElementById('line-change-modal-close')?.addEventListener('click', closeLineChangeModal);
+      document.getElementById('line-change-cancel-btn')?.addEventListener('click', closeLineChangeModal);
+      document.getElementById('line-change-modal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeLineChangeModal();
+      });
+      document.getElementById('line-change-form')?.addEventListener('submit', handleLineChangeSubmit);
+
+      // 플레이어 추가 모달
+      document.getElementById('add-player-btn')?.addEventListener('click', () => {
+        updateTierSelectIcon('add-tier', 'add-tier-icon');
+        document.getElementById('add-player-modal').classList.remove('hidden');
+      });
+      document.getElementById('add-player-modal-close')?.addEventListener('click', () => {
+        document.getElementById('add-player-modal').classList.add('hidden');
+      });
+      document.getElementById('add-player-modal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+      });
+      document.getElementById('add-player-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitAddPlayer(false);
+      });
+      document.getElementById('add-as-waiting-btn')?.addEventListener('click', () => {
+        submitAddPlayer(true);
+      });
+
+      // 팝오버 토글 (알고리즘, 점수, 조정 이력)
+      const algoBtn = document.getElementById('toggle-algo-btn');
+      const scoreBtn = document.getElementById('toggle-score-btn');
+      const logBtn = document.getElementById('toggle-log-btn');
+      const cannotBtn = document.getElementById('cannot-assign-btn');
+
+      const algoPopover = document.getElementById('algo-popover');
+      const scorePopover = document.getElementById('score-popover');
+      const logPopover = document.getElementById('adjust-log-popover');
+      const cannotPopover = document.getElementById('cannot-assign-popover');
+
+      function hideAllHeaderPopovers() {
+        algoPopover?.classList.add('hidden');
+        scorePopover?.classList.add('hidden');
+        logPopover?.classList.add('hidden');
+        cannotPopover?.classList.add('hidden');
+      }
+
+      algoBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = algoPopover?.classList.contains('hidden');
+        hideAllHeaderPopovers();
+        if (isHidden) algoPopover?.classList.remove('hidden');
+      });
+      document.getElementById('algo-close-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        algoPopover?.classList.add('hidden');
+      });
+
+      scoreBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = scorePopover?.classList.contains('hidden');
+        hideAllHeaderPopovers();
+        if (isHidden) scorePopover?.classList.remove('hidden');
+      });
+      document.getElementById('score-close-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        scorePopover?.classList.add('hidden');
+      });
+
+      logBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = logPopover?.classList.contains('hidden');
+        hideAllHeaderPopovers();
+        if (isHidden) logPopover?.classList.remove('hidden');
+      });
+      document.getElementById('adjust-log-close-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        logPopover?.classList.add('hidden');
+      });
+
+      cannotBtn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = cannotPopover?.classList.contains('hidden');
+        hideAllHeaderPopovers();
+        if (isHidden) cannotPopover?.classList.remove('hidden');
+      });
+      document.getElementById('popover-close-btn')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        cannotPopover?.classList.add('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        if (algoPopover && !algoPopover.classList.contains('hidden') && !algoPopover.contains(e.target) && e.target !== algoBtn) {
+          algoPopover.classList.add('hidden');
+        }
+        if (scorePopover && !scorePopover.classList.contains('hidden') && !scorePopover.contains(e.target) && e.target !== scoreBtn) {
+          scorePopover.classList.add('hidden');
+        }
+        if (logPopover && !logPopover.classList.contains('hidden') && !logPopover.contains(e.target) && e.target !== logBtn) {
+          logPopover.classList.add('hidden');
+        }
+        if (cannotPopover && !cannotPopover.classList.contains('hidden') && !cannotPopover.contains(e.target) && e.target !== cannotBtn) {
+          cannotPopover.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('prev-combo-btn')?.addEventListener('click', () => {
+        if (comboIndex > 0) { comboIndex--; renderResult(); }
+      });
+      document.getElementById('next-combo-btn')?.addEventListener('click', () => {
+        if (comboIndex < currentCombos.length - 1) { comboIndex++; renderResult(); }
+      });
+
+      document.getElementById('copy-result-btn')?.addEventListener('click', copyResultText);
+      document.getElementById('reset-result-btn')?.addEventListener('click', resetResult);
+
+      init();
+    });
+  </script>
+</body>
+
+</html>

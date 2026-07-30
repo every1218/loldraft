@@ -1,0 +1,149 @@
+<!-- npx serve . --listen 3000   -->
+<!-- http://localhost:3000/room.html?room=46GT58 -->
+
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoL Draft – 내전 팀 드래프트</title>
+  <meta name="description" content="리그 오브 레전드 내전 팀 자동 배정 서비스. 라인 배정과 점수 균형을 자동으로 최적화합니다.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="landing-page">
+
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="hero-card">
+    <div class="hero-logo">LoL Draft</div>
+    <!-- Firebase 미설정 시 경고 (JS에서 토글) -->
+    <div class="firebase-warning hidden" id="firebase-warning">
+      ⚠️ Firebase 설정이 필요합니다.<br>
+      <code>js/firebase-config.js</code> 파일을 열어<br>
+      본인 프로젝트 값으로 교체해주세요.
+      <br><br>
+      <a href="https://console.firebase.google.com" target="_blank" style="color:#ffa040; text-decoration:underline;">
+        Firebase Console 열기 →
+      </a>
+    </div>
+
+    <button id="create-room-btn" class="btn btn-gold btn-full btn-large">
+      방 만들기
+    </button>
+
+    <p style="margin-top: 16px; font-size: 0.78rem; color: var(--text-dim);">
+      방을 만들면 링크가 생성됩니다. 참가자들에게 공유하세요.
+    </p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <script>
+    // ─── 파티클 배경 애니메이션 ────────────────────────────────────
+    (function () {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      function createParticle() {
+        return {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.5 + 0.3,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          alpha: Math.random() * 0.4 + 0.1,
+          gold: Math.random() > 0.6
+        };
+      }
+
+      for (let i = 0; i < 120; i++) particles.push(createParticle());
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.gold
+            ? `rgba(200, 155, 60, ${p.alpha})`
+            : `rgba(100, 130, 200, ${p.alpha})`;
+          ctx.fill();
+        });
+        requestAnimationFrame(animate);
+      }
+      animate();
+    })();
+
+    // ─── 방 생성 로직 ──────────────────────────────────────────────
+    function generateRoomId() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    }
+
+    function generateToken() {
+      return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+    }
+
+    function isFirebaseConfigured() {
+      return firebaseConfig.apiKey !== 'YOUR_API_KEY';
+    }
+
+    document.getElementById('create-room-btn').addEventListener('click', async function () {
+      if (!isFirebaseConfigured()) {
+        document.getElementById('firebase-warning').classList.remove('hidden');
+        return;
+      }
+
+      const btn = this;
+      btn.disabled = true;
+      btn.textContent = '방 생성 중...';
+
+      try {
+        let app;
+        try { app = firebase.app(); } catch (e) { app = firebase.initializeApp(firebaseConfig); }
+
+        const db = firebase.database();
+        const roomId = generateRoomId();
+        const hostToken = generateToken();
+        const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+
+        await db.ref(`rooms/${roomId}`).set({
+          meta: {
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            expiresAt,
+            hostToken,
+            mode: '5v5'
+          }
+        });
+
+        localStorage.setItem(`hostToken_${roomId}`, hostToken);
+        window.location.href = `room.html?room=${roomId}`;
+
+      } catch (err) {
+        console.error(err);
+        alert('방 생성 실패: ' + err.message + '\n\nFirebase 설정을 확인해주세요.');
+        btn.disabled = false;
+        btn.textContent = '방 만들기';
+      }
+    });
+  </script>
+</body>
+
+</html>
