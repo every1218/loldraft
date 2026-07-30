@@ -1029,9 +1029,11 @@
         const bestCombo = result.combinations[0];
         if (bestCombo) {
           const balanceInfo = getBalanceLabel(bestCombo.scoreDiff);
+          const hostPlayer = (myPlayerId && playersMap[myPlayerId]) ? playersMap[myPlayerId].nickname : '방장';
           firebase.database().ref('history').push({
             createdAt: firebase.database.ServerValue.TIMESTAMP,
             roomId: roomId,
+            hostNickname: hostPlayer,
             scoreDiff: bestCombo.scoreDiff,
             blueScore: bestCombo.blueScore,
             redScore: bestCombo.redScore,
