@@ -19,7 +19,9 @@ const LINE_ICONS = {
 
 // ─── 티어 상수 ───────────────────────────────────────────────────
 const ALL_TIERS = [
-  '실버3이하', '실버2', '실버1',
+  '아이언4', '아이언3', '아이언2', '아이언1',
+  '브론즈4', '브론즈3', '브론즈2', '브론즈1',
+  '실버4', '실버3', '실버2', '실버1',
   '골드4', '골드3', '골드2', '골드1',
   '플래티넘4', '플래티넘3', '플래티넘2', '플래티넘1',
   '에메랄드4', '에메랄드3', '에메랄드2', '에메랄드1',
@@ -30,7 +32,9 @@ const ALL_TIERS = [
 const MASTER_TIERS = ['마스터', '그랜드마스터', '챌린저'];
 
 const TIER_DISPLAY = {
-  '실버3이하': '실버3 이하', '실버2': '실버2', '실버1': '실버1',
+  '아이언4': '아이언4', '아이언3': '아이언3', '아이언2': '아이언2', '아이언1': '아이언1',
+  '브론즈4': '브론즈4', '브론즈3': '브론즈3', '브론즈2': '브론즈2', '브론즈1': '브론즈1',
+  '실버4': '실버4', '실버3': '실버3', '실버2': '실버2', '실버1': '실버1',
   '골드4': '골드4', '골드3': '골드3', '골드2': '골드2', '골드1': '골드1',
   '플래티넘4': '플래티넘4', '플래티넘3': '플래티넘3', '플래티넘2': '플래티넘2', '플래티넘1': '플래티넘1',
   '에메랄드4': '에메랄드4', '에메랄드3': '에메랄드3', '에메랄드2': '에메랄드2', '에메랄드1': '에메랄드1',
@@ -40,7 +44,16 @@ const TIER_DISPLAY = {
 
 // 로컬 티어 엠블럼 이미지
 const TIER_ICONS = {
-  '실버3이하': 'img/silver.png',
+  '아이언4':   'img/iron.png',
+  '아이언3':   'img/iron.png',
+  '아이언2':   'img/iron.png',
+  '아이언1':   'img/iron.png',
+  '브론즈4':   'img/bronze.png',
+  '브론즈3':   'img/bronze.png',
+  '브론즈2':   'img/bronze.png',
+  '브론즈1':   'img/bronze.png',
+  '실버4':     'img/silver.png',
+  '실버3':     'img/silver.png',
   '실버2':     'img/silver.png',
   '실버1':     'img/silver.png',
   '골드4':     'img/gold.png',
@@ -66,7 +79,16 @@ const TIER_ICONS = {
 
 // ─── 점수 테이블 (score.md 기반) ─────────────────────────────────
 const TIER_SCORES = {
-  '실버3이하': { top: 11, jungle: 10, mid: 13, adc: 10, support: 15 },
+  '아이언4': { top: 2, jungle: 1.5, mid: 4.9, adc: 4.1, support: 7.4 },
+  '아이언3': { top: 3, jungle: 2.4, mid: 5.8, adc: 4.8, support: 8.2 },
+  '아이언2': { top: 4, jungle: 3.4, mid: 6.7, adc: 5.4, support: 9.1 },
+  '아이언1': { top: 5, jungle: 4.3, mid: 7.6, adc: 6.1, support: 9.9 },
+  '브론즈4': { top: 6, jungle: 5.3, mid: 8.5, adc: 6.7, support: 10.8 },
+  '브론즈3': { top: 7, jungle: 6.2, mid: 9.4, adc: 7.4, support: 11.6 },
+  '브론즈2': { top: 8, jungle: 7.2, mid: 10.3, adc: 8, support: 12.5 },
+  '브론즈1': { top: 9, jungle: 8.1, mid: 11.2, adc: 8.7, support: 13.3 },
+  '실버4': { top: 10, jungle: 9.1, mid: 12.1, adc: 9.3, support: 14.2 },
+  '실버3': { top: 11, jungle: 10, mid: 13, adc: 10, support: 15 },
   '실버2': { top: 12, jungle: 11, mid: 13.9, adc: 10.6, support: 15.9 },
   '실버1': { top: 13, jungle: 11.9, mid: 14.8, adc: 11.3, support: 16.7 },
   '골드4': { top: 14.6, jungle: 12.8, mid: 15.9, adc: 11.9, support: 17.6 },
@@ -117,13 +139,14 @@ const MASTER_LP_SCORES = [
  * @returns {{ top, jungle, mid, adc, support }}
  */
 function getScoreForPlayer(tier, lp) {
+  if (tier === '실버3이하') tier = '실버3';
   if (MASTER_TIERS.includes(tier)) {
     const lpNum = parseInt(lp) || 0;
     const row = MASTER_LP_SCORES.find(r => lpNum >= r.lpMin && lpNum <= r.lpMax)
       || MASTER_LP_SCORES[MASTER_LP_SCORES.length - 1];
     return { top: row.top, jungle: row.jungle, mid: row.mid, adc: row.adc, support: row.support };
   }
-  return TIER_SCORES[tier] || TIER_SCORES['실버3이하'];
+  return TIER_SCORES[tier] || TIER_SCORES['골드4'];
 }
 
 /**

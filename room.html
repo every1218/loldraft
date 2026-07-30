@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LoL Draft – 대기실</title>
+  <title>TeamDraft.lol – 대기실</title>
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
   <link rel="stylesheet" href="css/style.css">
@@ -14,7 +14,7 @@
 
   <!-- ─── 헤더 ──────────────────────────────────────────────────── -->
   <header class="room-header">
-    <a href="index.html" class="header-logo">LoL Draft</a>
+    <a href="index.html" class="header-logo">TeamDraft.lol</a>
     <div class="header-center">
       <span class="room-code-badge" id="room-code-display">------</span>
       <button class="copy-link-btn" id="copy-link-btn">🔗 링크 복사</button>
@@ -51,69 +51,37 @@
   <!-- ═══ 참가 폼 ══════════════════════════════════════════════════ -->
   <div class="section hidden" id="join-section">
     <div class="join-wrapper">
-      <div class="join-card">
+      <div class="join-card join-card-wide">
         <h2>⚔ 내전 참가</h2>
         <form id="join-form" autocomplete="off">
-
-          <!-- 닉네임 -->
-          <div class="form-group">
-            <label for="nickname-input">라이엇 닉네임</label>
-            <input type="text" id="nickname-input" placeholder="닉네임#KR1" required maxlength="60">
-          </div>
-
-          <!-- 최고티어 -->
-          <div class="form-group">
-            <label for="tier-select">최고티어(15~16시즌)</label>
-            <div class="tier-select-container">
-              <img id="tier-select-icon" class="tier-select-preview" src="img/silver.png" alt="티어 엠블럼">
-              <select id="tier-select">
-                <option value="실버3이하">실버3 이하 (브론즈/아이언 포함)</option>
-                <option value="실버2">실버2</option>
-                <option value="실버1">실버1</option>
-                <option value="골드4">골드4</option>
-                <option value="골드3">골드3</option>
-                <option value="골드2">골드2</option>
-                <option value="골드1">골드1</option>
-                <option value="플래티넘4">플래티넘4</option>
-                <option value="플래티넘3">플래티넘3</option>
-                <option value="플래티넘2">플래티넘2</option>
-                <option value="플래티넘1">플래티넘1</option>
-                <option value="에메랄드4">에메랄드4</option>
-                <option value="에메랄드3">에메랄드3</option>
-                <option value="에메랄드2">에메랄드2</option>
-                <option value="에메랄드1">에메랄드1</option>
-                <option value="다이아4">다이아4</option>
-                <option value="다이아3">다이아3</option>
-                <option value="다이아2">다이아2</option>
-                <option value="다이아1">다이아1</option>
-                <option value="마스터">마스터</option>
-                <option value="그랜드마스터">그랜드마스터</option>
-                <option value="챌린저">챌린저</option>
-              </select>
+          <div class="form-grid-2col">
+            <div class="form-col-left">
+              <div class="form-group">
+                <label for="nickname-input">라이엇 닉네임</label>
+                <input type="text" id="nickname-input" placeholder="닉네임#KR1" required maxlength="60">
+              </div>
+              <div class="form-group">
+                <label>희망 라인 <span style="color:var(--gold)">*</span></label>
+                <div class="line-selector" id="main-line-selector"></div>
+              </div>
+              <div class="form-group">
+                <label>부라인 <span style="color:var(--text-dim);font-weight:400;">(선택, 복수 가능)</span></label>
+                <div class="line-selector" id="sub-line-selector"></div>
+              </div>
+            </div>
+            <div class="form-col-right">
+              <div class="form-group" style="margin-bottom:0">
+                <label>최고티어(15~16시즌) <span style="color:var(--gold)">*</span></label>
+                <input type="hidden" id="tier-select" value="골드4">
+                <div class="tier-matrix-picker" id="tier-picker-join"></div>
+              </div>
             </div>
           </div>
-
-          <!-- LP (마스터+ 전용) -->
-          <div class="form-group hidden" id="lp-group">
-            <label for="lp-input">LP</label>
-            <input type="number" id="lp-input" min="0" max="9999" placeholder="0" value="0">
+          <div class="form-actions-row">
+            <button type="submit" class="btn btn-primary" id="join-submit-btn" style="min-width: 220px;">
+              참가하기
+            </button>
           </div>
-
-          <!-- 희망 라인 -->
-          <div class="form-group">
-            <label>희망 라인 <span style="color:var(--gold)">*</span></label>
-            <div class="line-selector" id="main-line-selector"></div>
-          </div>
-
-          <!-- 부라인 -->
-          <div class="form-group">
-            <label>부라인 <span style="color:var(--text-dim);font-weight:400;">(선택, 복수 가능)</span></label>
-            <div class="line-selector" id="sub-line-selector"></div>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-full" id="join-submit-btn">
-            참가하기
-          </button>
         </form>
       </div>
     </div>
@@ -280,68 +248,45 @@
     <!-- 방장 전용 하단 바 -->
     <div class="host-bar hidden" id="host-bar">
       <button class="btn btn-gold assign-btn" id="assign-btn" disabled>
-        🎲 팀 배정하기
+        팀 드래프트
       </button>
     </div>
   </div>
 
   <!-- ═══ 방장 플레이어 추가 모달 ════════════════════════════════════ -->
   <div class="modal-overlay hidden" id="add-player-modal">
-    <div class="modal-card">
+    <div class="modal-card modal-card-wide">
       <div class="modal-header">
-        <h3>플레이어 직접 추가</h3>
+        <h3>➕ 플레이어 직접 추가</h3>
         <button class="modal-close-btn" id="add-player-modal-close">✕</button>
       </div>
       <form id="add-player-form" autocomplete="off">
-        <div class="form-group">
-          <label for="add-nickname">라이엇 닉네임</label>
-          <input type="text" id="add-nickname" placeholder="닉네임#KR1" required maxlength="60">
-        </div>
-        <div class="form-group">
-          <label for="add-tier">최고티어(15~16시즌)</label>
-          <div class="tier-select-container">
-            <img id="add-tier-icon" class="tier-select-preview" src="img/silver.png" alt="티어 엠블럼">
-            <select id="add-tier">
-              <option value="실버3이하">실버3 이하</option>
-              <option value="실버2">실버2</option>
-              <option value="실버1">실버1</option>
-              <option value="골드4">골드4</option>
-              <option value="골드3">골드3</option>
-              <option value="골드2">골드2</option>
-              <option value="골드1">골드1</option>
-              <option value="플래티넘4">플래티넘4</option>
-              <option value="플래티넘3">플래티넘3</option>
-              <option value="플래티넘2">플래티넘2</option>
-              <option value="플래티넘1">플래티넘1</option>
-              <option value="에메랄드4">에메랄드4</option>
-              <option value="에메랄드3">에메랄드3</option>
-              <option value="에메랄드2">에메랄드2</option>
-              <option value="에메랄드1">에메랄드1</option>
-              <option value="다이아4">다이아4</option>
-              <option value="다이아3">다이아3</option>
-              <option value="다이아2">다이아2</option>
-              <option value="다이아1">다이아1</option>
-              <option value="마스터">마스터</option>
-              <option value="그랜드마스터">그랜드마스터</option>
-              <option value="챌린저">챌린저</option>
-            </select>
+        <div class="form-grid-2col">
+          <div class="form-col-left">
+            <div class="form-group">
+              <label for="add-nickname">라이엇 닉네임</label>
+              <input type="text" id="add-nickname" placeholder="닉네임#KR1" required maxlength="60">
+            </div>
+            <div class="form-group">
+              <label>희망 라인 <span style="color:var(--gold)">*</span></label>
+              <div class="line-selector" id="add-main-line-selector"></div>
+            </div>
+            <div class="form-group">
+              <label>부라인 <span style="color:var(--text-dim);font-weight:400">(선택)</span></label>
+              <div class="line-selector" id="add-sub-line-selector"></div>
+            </div>
+          </div>
+          <div class="form-col-right">
+            <div class="form-group" style="margin-bottom:0">
+              <label>최고티어(15~16시즌) <span style="color:var(--gold)">*</span></label>
+              <input type="hidden" id="add-tier" value="골드4">
+              <div class="tier-matrix-picker" id="tier-picker-add"></div>
+            </div>
           </div>
         </div>
-        <div class="form-group hidden" id="add-lp-group">
-          <label for="add-lp">LP</label>
-          <input type="number" id="add-lp" min="0" max="9999" placeholder="0" value="0">
-        </div>
-        <div class="form-group">
-          <label>희망 라인 <span style="color:var(--gold)">*</span></label>
-          <div class="line-selector" id="add-main-line-selector"></div>
-        </div>
-        <div class="form-group">
-          <label>부라인 <span style="color:var(--text-dim);font-weight:400">(선택)</span></label>
-          <div class="line-selector" id="add-sub-line-selector"></div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button type="button" class="btn btn-outline" style="flex:1" id="add-as-waiting-btn">대기로 추가</button>
-          <button type="submit" class="btn btn-primary" style="flex:2">명단에 추가</button>
+        <div class="form-actions-row">
+          <button type="button" class="btn btn-outline" id="add-as-waiting-btn" style="min-width: 130px;">대기로 추가</button>
+          <button type="submit" class="btn btn-primary" id="add-submit-btn" style="min-width: 160px;">명단에 추가</button>
         </div>
       </form>
     </div>
@@ -729,6 +674,13 @@
         if (!p) return '';
         const tier = getEffectiveTier(p);
         const isSub = isSubLine && isSubLine[pid];
+        const isAll = (p.mainLine === 'all');
+        let badgeHTML = '';
+        if (isAll) {
+          badgeHTML = '<span class="all-badge" title="희망라인: 상관없음">✻</span>';
+        } else if (isSub) {
+          badgeHTML = '<span class="sub-badge">부</span>';
+        }
         const opgg = encodeURIComponent((p.nickname || '').replace('#', '-'));
 
         const scoresObj = getScoreForPlayer(tier, p.lp);
@@ -750,7 +702,7 @@
             <img src="${getPlayerProfileIcon(p)}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
           </div>
           <a href="https://www.op.gg/summoners/kr/${opgg}" target="_blank"
-             class="result-nickname-link">${p.nickname}${isSub ? '<span class="sub-badge">부</span>' : ''}</a>
+             class="result-nickname-link">${p.nickname}${badgeHTML}</a>
         </div>
         <div class="result-tier-col">
           <img src="${TIER_ICONS[tier]}" alt="${tier}"
@@ -1049,7 +1001,8 @@
                 nickname: p.nickname || '',
                 tier: getEffectiveTier(p),
                 line: line,
-                isSub: !!bestCombo.isSubLine[pid]
+                isSub: !!bestCombo.isSubLine[pid],
+                isAll: p.mainLine === 'all'
               };
             }).filter(Boolean),
             redTeam: LINES_ORDER.map(line => {
@@ -1061,7 +1014,8 @@
                 nickname: p.nickname || '',
                 tier: getEffectiveTier(p),
                 line: line,
-                isSub: !!bestCombo.isSubLine[pid]
+                isSub: !!bestCombo.isSubLine[pid],
+                isAll: p.mainLine === 'all'
               };
             }).filter(Boolean)
           };
@@ -1101,8 +1055,11 @@
       LINES_ORDER.forEach(line => {
         const pid = combo.blue.find(id => combo.lineMap[id] === line);
         if (pid && playersMap[pid]) {
+          const p = playersMap[pid];
           const isSub = combo.isSubLine[pid];
-          text += `  [${LINE_NAMES[line]}] ${playersMap[pid].nickname}${isSub ? ' (부)' : ''}\n`;
+          const isAll = (p.mainLine === 'all');
+          const badgeStr = isAll ? ' ✻' : (isSub ? ' (부)' : '');
+          text += `  [${LINE_NAMES[line]}] ${p.nickname}${badgeStr}\n`;
         }
       });
       text += `  총점: ${combo.blueScore}점\n\n`;
@@ -1111,8 +1068,11 @@
       LINES_ORDER.forEach(line => {
         const pid = combo.red.find(id => combo.lineMap[id] === line);
         if (pid && playersMap[pid]) {
+          const p = playersMap[pid];
           const isSub = combo.isSubLine[pid];
-          text += `  [${LINE_NAMES[line]}] ${playersMap[pid].nickname}${isSub ? ' (부)' : ''}\n`;
+          const isAll = (p.mainLine === 'all');
+          const badgeStr = isAll ? ' ✻' : (isSub ? ' (부)' : '');
+          text += `  [${LINE_NAMES[line]}] ${p.nickname}${badgeStr}\n`;
         }
       });
       text += `  총점: ${combo.redScore}점\n\n`;
@@ -1206,14 +1166,7 @@
       }
     }
 
-    // ─── 티어 아이콘 미리보기 업데이트 ─────────────────────────────────
-    function updateTierSelectIcon(selectId, iconId) {
-      const selectEl = document.getElementById(selectId);
-      const iconEl = document.getElementById(iconId);
-      if (selectEl && iconEl) {
-        iconEl.src = TIER_ICONS[selectEl.value] || 'img/silver.png';
-      }
-    }
+
 
     // ─── 공통 라인 셀렉터 설정 ─────────────────────────────────────────
     function setupLineSelector(mainSelId, subSelId) {
@@ -1315,7 +1268,90 @@
       });
     }
 
+    // ─── 티어 메트릭스 그리드 셀렉터 설정 ─────────────────────────────
+    const TIER_GROUPS = [
+      { name: '아이언', icon: 'img/iron.png', divisions: ['아이언4', '아이언3', '아이언2', '아이언1'] },
+      { name: '브론즈', icon: 'img/bronze.png', divisions: ['브론즈4', '브론즈3', '브론즈2', '브론즈1'] },
+      { name: '실버', icon: 'img/silver.png', divisions: ['실버4', '실버3', '실버2', '실버1'] },
+      { name: '골드', icon: 'img/gold.png', divisions: ['골드4', '골드3', '골드2', '골드1'] },
+      { name: '플래티넘', icon: 'img/platinum.png', divisions: ['플래티넘4', '플래티넘3', '플래티넘2', '플래티넘1'] },
+      { name: '에메랄드', icon: 'img/emerald.png', divisions: ['에메랄드4', '에메랄드3', '에메랄드2', '에메랄드1'] },
+      { name: '다이아', icon: 'img/diamond.png', divisions: ['다이아4', '다이아3', '다이아2', '다이아1'] }
+    ];
+
+    const MASTER_TIERS_INFO = [
+      { name: '마스터', icon: 'img/master.png', tier: '마스터' },
+      { name: '그마', icon: 'img/grandmaster.png', tier: '그랜드마스터' },
+      { name: '챌린저', icon: 'img/challenger.png', tier: '챌린저' }
+    ];
+
+    const ROMAN_NUMS = ['IV', 'III', 'II', 'I'];
+
+    function setupTierMatrixPicker(containerId, hiddenInputId, lpInputId) {
+      const container = document.getElementById(containerId);
+      const hiddenInput = document.getElementById(hiddenInputId);
+      if (!container || !hiddenInput) return;
+
+      const defaultTier = hiddenInput.value || '골드4';
+      let html = '';
+
+      TIER_GROUPS.forEach(group => {
+        html += `
+        <div class="tier-row">
+          <div class="tier-row-label">
+            <img src="${group.icon}" alt="${group.name}" class="tier-row-icon">
+            <span>${group.name}</span>
+          </div>
+          <div class="tier-divisions">`;
+        group.divisions.forEach((t, i) => {
+          const isSelected = (t === defaultTier);
+          html += `<button type="button" class="tier-btn ${isSelected ? 'selected' : ''}" data-tier="${t}">${ROMAN_NUMS[i]}</button>`;
+        });
+        html += `</div></div>`;
+      });
+
+      html += `<div class="tier-master-row">`;
+      MASTER_TIERS_INFO.forEach(m => {
+        const isSelected = (m.tier === defaultTier);
+        html += `
+        <button type="button" class="tier-btn tier-btn-master ${isSelected ? 'selected' : ''}" data-tier="${m.tier}">
+          <img src="${m.icon}" alt="${m.name}" class="tier-master-icon">
+          <span>${m.name}</span>
+        </button>`;
+      });
+      html += `</div>`;
+
+      // 상자 내부에 심플하게 일체화된 LP 입력 행
+      const isMasterDefault = MASTER_TIERS.includes(defaultTier);
+      html += `
+      <div class="tier-lp-row ${isMasterDefault ? '' : 'hidden'}" id="${containerId}-lp-row">
+        <span class="tier-lp-label">LP 입력</span>
+        <div class="tier-lp-input-box">
+          <input type="number" id="${lpInputId}" class="tier-lp-input" min="0" max="9999" placeholder="0" value="0">
+          <span class="lp-unit-text">LP</span>
+        </div>
+      </div>`;
+
+      container.innerHTML = html;
+
+      container.querySelectorAll('.tier-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          container.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          const val = btn.dataset.tier;
+          hiddenInput.value = val;
+
+          const lpRow = document.getElementById(`${containerId}-lp-row`);
+          if (lpRow) {
+            lpRow.classList.toggle('hidden', !MASTER_TIERS.includes(val));
+          }
+        });
+      });
+    }
+
     function initLineSelectors() {
+      setupTierMatrixPicker('tier-picker-join', 'tier-select', 'lp-input');
+      setupTierMatrixPicker('tier-picker-add', 'add-tier', 'add-lp');
       setupLineSelector('main-line-selector', 'sub-line-selector');
     }
 
@@ -1448,11 +1484,6 @@
     // ─── 방장 플레이어 추가 모달 ─────────────────────────────────────
     function initAddPlayerModal() {
       setupLineSelector('add-main-line-selector', 'add-sub-line-selector');
-
-      document.getElementById('add-tier').addEventListener('change', function () {
-        updateTierSelectIcon('add-tier', 'add-tier-icon');
-        document.getElementById('add-lp-group').classList.toggle('hidden', !MASTER_TIERS.includes(this.value));
-      });
     }
 
     async function submitAddPlayer(forceWaiting) {
@@ -1479,8 +1510,10 @@
         document.getElementById('add-player-modal').classList.add('hidden');
         // 폼 초기화
         document.getElementById('add-player-form').reset();
-        updateTierSelectIcon('add-tier', 'add-tier-icon');
+        document.getElementById('add-tier').value = '골드4';
+        setupTierMatrixPicker('tier-picker-add', 'add-tier', 'add-lp');
         document.querySelectorAll('#add-main-line-selector .line-btn, #add-sub-line-selector .line-btn').forEach(b => b.classList.remove('selected'));
+        toast(status === 'waiting' ? '대기 명단에 추가되었습니다.' : '명단에 추가되었습니다.', 'info');
       } catch (err) {
         toast('추가 실패: ' + err.message, 'error');
       }
@@ -1510,16 +1543,6 @@
       initAddPlayerModal();
       setupLineSelector('edit-main-line-selector', 'edit-sub-line-selector');
 
-      // 티어 미리보기 초기화 & 이벤트
-      updateTierSelectIcon('tier-select', 'tier-select-icon');
-      updateTierSelectIcon('add-tier', 'add-tier-icon');
-
-      // 마스터+ 티어 LP 입력 & 티어 미리보기
-      document.getElementById('tier-select').addEventListener('change', function () {
-        updateTierSelectIcon('tier-select', 'tier-select-icon');
-        document.getElementById('lp-group').classList.toggle('hidden', !MASTER_TIERS.includes(this.value));
-      });
-
       document.getElementById('join-form').addEventListener('submit', handleJoinSubmit);
       document.getElementById('copy-link-btn').addEventListener('click', copyRoomLink);
       document.getElementById('assign-btn')?.addEventListener('click', handleAssign);
@@ -1535,7 +1558,6 @@
 
       // 플레이어 추가 모달
       document.getElementById('add-player-btn')?.addEventListener('click', () => {
-        updateTierSelectIcon('add-tier', 'add-tier-icon');
         document.getElementById('add-player-modal').classList.remove('hidden');
       });
       document.getElementById('add-player-modal-close')?.addEventListener('click', () => {

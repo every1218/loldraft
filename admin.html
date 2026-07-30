@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LoL Draft – 비밀 관리자 히스토리</title>
+  <title>TeamDraft.lol – 비밀 관리자 히스토리</title>
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
   <link rel="stylesheet" href="css/style.css">
@@ -274,6 +274,16 @@
       margin-left: 4px;
     }
 
+    .all-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: #e67e22;
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+    }
+
     .tier-name {
       font-size: 0.8rem;
       color: var(--text-dim);
@@ -382,7 +392,7 @@
   <div class="admin-container" id="admin-main" style="display: none;">
     <div class="admin-header">
       <div class="admin-title">
-        <span>📊 LoL Draft 히스토리 목록</span>
+        <span>📊 TeamDraft.lol 히스토리 목록</span>
         <span class="record-count-badge" id="record-count-badge">0건</span>
       </div>
       <div class="admin-toolbar">
@@ -552,7 +562,7 @@
             <div class="player-left">
               <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
               <strong>${escapeHtml(p.nickname)}</strong>
-              ${p.isSub ? '<span class="sub-badge">부</span>' : ''}
+              ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
             </div>
             <span class="tier-name">${p.tier || ''}</span>
           </div>
@@ -563,7 +573,7 @@
             <div class="player-left">
               <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
               <strong>${escapeHtml(p.nickname)}</strong>
-              ${p.isSub ? '<span class="sub-badge">부</span>' : ''}
+              ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
             </div>
             <span class="tier-name">${p.tier || ''}</span>
           </div>

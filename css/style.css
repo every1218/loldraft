@@ -498,51 +498,53 @@ textarea {
   background: #111e36;
 }
 
-/* ─── 티어 셀렉트 래퍼 ─────────────────────────────────────────── */
-.tier-select-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 
-.tier-select-preview {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 6px rgba(200, 155, 60, 0.3));
-}
 
-/* ─── 라인 선택 버튼 ─────────────────────────────────────────────── */
+/* ─── 라인 선택 버튼 (5 + 1 분배 레이아웃) ───────────────────────── */
 .line-selector {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
 }
 
 .line-btn {
-  flex: 1;
-  min-width: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 10px 8px;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 2px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 500;
   transition: var(--transition);
+  min-width: 0;
 }
 
 .line-btn img {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
   filter: brightness(0.6);
   transition: var(--transition);
+}
+
+/* "상관없음" (data-line="all") 버튼: 5열 전체 가로 스팬 */
+.line-btn[data-line="all"] {
+  grid-column: span 5;
+  flex-direction: row;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+}
+
+.line-btn[data-line="all"] img {
+  width: 18px;
+  height: 18px;
 }
 
 .line-btn:hover {
@@ -701,6 +703,14 @@ textarea {
 }
 
 /* 호버 시 티어별 시그니처 글로우 효과 */
+.player-card.tier-iron:hover {
+  box-shadow: 0 8px 20px rgba(130, 140, 150, 0.35);
+}
+
+.player-card.tier-bronze:hover {
+  box-shadow: 0 8px 20px rgba(180, 115, 75, 0.4);
+}
+
 .player-card.tier-silver:hover {
   box-shadow: 0 8px 20px rgba(160, 175, 195, 0.35);
 }
@@ -1282,6 +1292,17 @@ textarea {
   margin-left: 4px;
 }
 
+.all-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(200, 155, 60, 0.2);
+  color: var(--gold);
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
 .result-tier-col {
   display: flex;
   align-items: center;
@@ -1737,6 +1758,68 @@ textarea {
   white-space: pre-line;
 }
 
+/* 점수 팝오버 스타일 (크기 확대하여 가시성 향상) */
+.score-popover {
+  width: min(760px, 94vw);
+}
+
+.score-popover-body {
+  max-height: 82vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px;
+}
+
+.score-advantage-notice {
+  width: 100%;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  background: rgba(200, 155, 60, 0.08);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-advantage-notice .notice-bullet {
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.score-advantage-notice .advantage-badge {
+  color: var(--gold-light);
+  font-weight: 700;
+  background: rgba(200, 155, 60, 0.15);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(200, 155, 60, 0.3);
+}
+
+.score-adv-text {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.score-table-img {
+  width: 100%;
+  max-height: 75vh;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid rgba(200, 155, 60, 0.25);
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
 /* ─── 조정 이력 팝오버 ────────────────────────────────────────── */
 .adjust-log-popover {
   position: absolute;
@@ -1954,63 +2037,200 @@ textarea {
   margin-top: 2px;
 }
 
-/* 점수 팝오버 스타일 (이미지 잘림 방지) */
-.score-popover {
-  width: min(520px, 92vw);
-}
-
-.score-popover-body {
-  max-height: 70vh;
-  overflow-y: auto;
+/* ─── 티어 메트릭스 그리드 셀렉터 ────────────────────────────── */
+.tier-matrix-picker {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 12px;
+  gap: 5px;
+  background: rgba(10, 15, 26, 0.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
 }
 
-.score-advantage-notice {
-  width: 100%;
-  padding: 8px 14px;
-  margin-bottom: 12px;
-  background: rgba(200, 155, 60, 0.08);
-  border: 1px solid var(--border-bright);
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text-primary);
+.tier-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tier-row-label {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.score-advantage-notice .notice-bullet {
-  color: var(--gold);
-  font-size: 1rem;
-}
-
-.score-advantage-notice .advantage-badge {
-  color: var(--gold-light);
+  width: 78px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
   font-weight: 700;
-  background: rgba(200, 155, 60, 0.15);
-  padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid rgba(200, 155, 60, 0.3);
+  color: var(--text-main);
 }
 
-.score-adv-text {
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-.score-table-img {
-  max-height: 55vh;
-  max-width: 100%;
-  width: auto;
-  height: auto;
+.tier-row-icon {
+  width: 20px;
+  height: 20px;
   object-fit: contain;
-  border-radius: 6px;
-  display: block;
-  margin: 0 auto;
 }
+
+.tier-divisions {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.tier-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tier-btn:hover {
+  background: rgba(200, 155, 60, 0.15);
+  border-color: rgba(200, 155, 60, 0.4);
+  color: #ffffff;
+}
+
+.tier-btn.selected {
+  background: linear-gradient(135deg, rgba(200, 155, 60, 0.4), rgba(160, 120, 40, 0.5));
+  border-color: var(--gold);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(200, 155, 60, 0.4);
+  font-weight: 800;
+}
+
+.tier-master-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tier-btn-master {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 0.78rem;
+}
+
+.tier-master-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* 상자 내부에 깔끔하고 슬림하게 통합된 LP 입력 행 */
+.tier-lp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 4px 6px 0 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tier-lp-row.hidden {
+  display: none;
+}
+
+.tier-lp-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.tier-lp-input-box {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.tier-lp-input-box:focus-within {
+  border-color: var(--gold);
+}
+
+.tier-lp-input {
+  width: 55px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: right;
+  outline: none;
+}
+
+.tier-lp-input::-webkit-outer-spin-button,
+.tier-lp-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.lp-unit-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+/* ─── 2열 분할 폼 레이아웃 (가로 확대 & 0 스크롤) ───────────── */
+.modal-card.modal-card-wide {
+  max-width: 780px;
+  width: 95vw;
+}
+
+.join-card.join-card-wide {
+  max-width: 780px;
+  width: 100%;
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.form-col-left,
+.form-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 680px) {
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .form-actions-row {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+}
+
