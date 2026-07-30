@@ -446,7 +446,25 @@
         try { app = firebase.app(); } catch (e) { app = firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
+        let loaded = false;
+        const timeoutTimer = setTimeout(() => {
+          if (!loaded) {
+            const container = document.getElementById('history-container');
+            if (container && container.innerHTML.includes('로딩 중')) {
+              container.innerHTML = `
+                <div class="empty-state">
+                  아직 저장된 팀 배정 히스토리가 없거나 데이터 로딩 대기 중입니다.<br><br>
+                  <small style="color:var(--text-dim);">
+                    (새로 팀 배정을 진행하면 여기에 히스토리가 자동으로 쌓입니다.)
+                  </small>
+                </div>`;
+            }
+          }
+        }, 3000);
+
         db.ref('history').on('value', snap => {
+          loaded = true;
+          clearTimeout(timeoutTimer);
           const val = snap.val();
           allHistory = [];
           if (val) {
@@ -460,10 +478,21 @@
           // 최신순 정렬
           allHistory.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           renderHistory();
+        }, err => {
+          loaded = true;
+          clearTimeout(timeoutTimer);
+          console.error('Firebase history fetch error:', err);
+          document.getElementById('history-container').innerHTML = `
+            <div class="empty-state">
+              ❌ Firebase 접근 권한 오류: ${err.message}<br><br>
+              <small style="color:#ffa040;">
+                Firebase 콘솔 ➔ Realtime Database ➔ [규칙] 탭에서 "history" 규칙을 허용해 주세요.
+              </small>
+            </div>`;
         });
       } catch (err) {
         console.error(err);
-        document.getElementById('history-container').innerHTML = `<div class="empty-state">Firebase 오류: ${err.message}</div>`;
+        document.getElementById('history-container').innerHTML = `<div class="empty-state">오류: ${err.message}</div>`;
       }
     }
 
@@ -498,7 +527,7 @@
         return;
       }
 
-      container.innerHTML = filtered.map(item => {
+      container.innerHTML = filtered.map((item, index) => {
         const bluePlayers = (item.blueTeam || []).map(p => `
           <div class="player-row">
             <div class="player-left">
