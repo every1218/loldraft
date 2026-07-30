@@ -1024,13 +1024,13 @@
         return;
       }
 
-      // 첫 번째(최우선) 조합만 히스토리 기록
+      // 첫 번째(최우선) 조합만 히스토리 기록 (고유 히스토리 번호 부여)
       try {
         const bestCombo = result.combinations[0];
         if (bestCombo) {
           const balanceInfo = getBalanceLabel(bestCombo.scoreDiff);
           const hostPlayer = (myPlayerId && playersMap[myPlayerId]) ? playersMap[myPlayerId].nickname : '방장';
-          firebase.database().ref('history').push({
+          const payload = {
             createdAt: firebase.database.ServerValue.TIMESTAMP,
             roomId: roomId,
             hostNickname: hostPlayer,
@@ -1064,6 +1064,13 @@
                 isSub: !!bestCombo.isSubLine[pid]
               };
             }).filter(Boolean)
+          };
+
+          firebase.database().ref('historySeq').transaction(current => (current || 0) + 1, (err, committed, snap) => {
+            if (committed) {
+              payload.historyNo = snap.val();
+              firebase.database().ref('history').push(payload);
+            }
           });
         }
       } catch (e) {
