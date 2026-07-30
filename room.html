@@ -1024,6 +1024,50 @@
         return;
       }
 
+      // 첫 번째(최우선) 조합만 히스토리 기록
+      try {
+        const bestCombo = result.combinations[0];
+        if (bestCombo) {
+          const balanceInfo = getBalanceLabel(bestCombo.scoreDiff);
+          firebase.database().ref('history').push({
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
+            roomId: roomId,
+            scoreDiff: bestCombo.scoreDiff,
+            blueScore: bestCombo.blueScore,
+            redScore: bestCombo.redScore,
+            balanceLabel: balanceInfo.label,
+            balanceClass: balanceInfo.cls,
+            balanceEmoji: balanceInfo.emoji,
+            blueTeam: LINES_ORDER.map(line => {
+              const pid = bestCombo.blue.find(id => bestCombo.lineMap[id] === line);
+              if (!pid || !playersMap[pid]) return null;
+              const p = playersMap[pid];
+              return {
+                id: pid,
+                nickname: p.nickname || '',
+                tier: getEffectiveTier(p),
+                line: line,
+                isSub: !!bestCombo.isSubLine[pid]
+              };
+            }).filter(Boolean),
+            redTeam: LINES_ORDER.map(line => {
+              const pid = bestCombo.red.find(id => bestCombo.lineMap[id] === line);
+              if (!pid || !playersMap[pid]) return null;
+              const p = playersMap[pid];
+              return {
+                id: pid,
+                nickname: p.nickname || '',
+                tier: getEffectiveTier(p),
+                line: line,
+                isSub: !!bestCombo.isSubLine[pid]
+              };
+            }).filter(Boolean)
+          });
+        }
+      } catch (e) {
+        console.error('히스토리 저장 실패:', e);
+      }
+
       firebase.database().ref(`rooms/${roomId}/result`).set({
         combinations: result.combinations,
         currentIndex: 0,

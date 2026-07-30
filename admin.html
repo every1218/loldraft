@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoL Draft – 비밀 관리자 히스토리</title>
+  <link rel="icon" type="image/png" href="img/icon.png">
+  <link rel="apple-touch-icon" href="img/icon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 32px 16px;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-gold-dark);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .admin-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .admin-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .search-input {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold-dark);
+      border-radius: 6px;
+      color: var(--text-main);
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      outline: none;
+      width: 220px;
+    }
+
+    .search-input:focus {
+      border-color: var(--gold-main);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .history-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold-dark);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .history-card:hover {
+      border-color: var(--gold-main);
+      transform: translateY(-2px);
+    }
+
+    .history-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .history-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .history-time {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    .history-room {
+      font-family: monospace;
+      background: rgba(200, 155, 60, 0.15);
+      color: var(--gold-light);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .teams-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .team-box {
+      border-radius: 8px;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .team-box.blue {
+      border-left: 4px solid #4a90e2;
+    }
+
+    .team-box.red {
+      border-left: 4px solid #e74c3c;
+    }
+
+    .team-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .team-box.blue .team-title {
+      color: #70a1ff;
+    }
+
+    .team-box.red .team-title {
+      color: #ff6b81;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.88rem;
+    }
+
+    .player-row:last-child {
+      border-bottom: none;
+    }
+
+    .player-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .line-badge {
+      font-size: 0.78rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      font-weight: 600;
+      min-width: 42px;
+      text-align: center;
+    }
+
+    .sub-badge {
+      font-size: 0.7rem;
+      background: #e67e22;
+      color: #fff;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 4px;
+    }
+
+    .tier-name {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+
+    .btn-delete-card {
+      background: transparent;
+      border: 1px solid rgba(231, 76, 60, 0.4);
+      color: #ff6b6b;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-delete-card:hover {
+      background: rgba(231, 76, 60, 0.2);
+    }
+
+    /* 비밀번호 모달 */
+    .pw-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10, 15, 25, 0.95);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .pw-modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold-dark);
+      border-radius: 12px;
+      padding: 32px;
+      width: 90%;
+      max-width: 380px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .pw-modal-title {
+      font-size: 1.25rem;
+      color: var(--gold-main);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .pw-modal-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .pw-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-gold-dark);
+      border-radius: 6px;
+      padding: 12px;
+      color: var(--text-main);
+      font-size: 1.1rem;
+      text-align: center;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+
+    .pw-input:focus {
+      border-color: var(--gold-main);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-dim);
+      background: var(--bg-card);
+      border: 1px dashed var(--border-gold-dark);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 비밀번호 인증 모달 -->
+  <div id="pw-modal" class="pw-modal-overlay">
+    <div class="pw-modal-box">
+      <div class="pw-modal-title">🔐 관리자 인증</div>
+      <div class="pw-modal-desc">비밀 관리자 페이지 접근을 위해 암호를 입력하세요.</div>
+      <input type="password" id="pw-input" class="pw-input" placeholder="••••" autofocus />
+      <button id="pw-submit-btn" class="btn btn-gold btn-full">확인</button>
+      <a href="index.html" style="display:inline-block; margin-top: 14px; font-size:0.85rem; color:var(--text-dim); text-decoration:underline;">
+        메인 화면으로 돌아가기
+      </a>
+    </div>
+  </div>
+
+  <!-- 관리자 컨텐츠 메인 -->
+  <div class="admin-container" id="admin-main" style="display: none;">
+    <div class="admin-header">
+      <div class="admin-title">
+        <span>📊 LoL Draft 관리자 히스토리</span>
+      </div>
+      <div class="admin-toolbar">
+        <input type="text" id="search-input" class="search-input" placeholder="닉네임 / 방 코드 검색..." />
+        <button id="btn-clear-all" class="btn btn-danger btn-small">전체 삭제</button>
+        <a href="index.html" class="btn btn-sub btn-small">메인으로</a>
+      </div>
+    </div>
+
+    <div id="history-container" class="history-list">
+      <div class="empty-state">로딩 중...</div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+
+  <script>
+    const ADMIN_PASSWORD = '1218';
+    const LINE_NAMES = { top: '탑', jungle: '정글', mid: '미드', adc: '원딜', support: '서폿' };
+
+    let allHistory = [];
+
+    // ─── 비밀번호 인증 ──────────────────────────────────────────────
+    function checkAuth() {
+      if (sessionStorage.getItem('adminAuth') === 'true') {
+        document.getElementById('pw-modal').style.display = 'none';
+        document.getElementById('admin-main').style.display = 'block';
+        initAdmin();
+      } else {
+        document.getElementById('pw-modal').style.display = 'flex';
+        document.getElementById('admin-main').style.display = 'none';
+      }
+    }
+
+    document.getElementById('pw-submit-btn').addEventListener('click', function () {
+      const val = document.getElementById('pw-input').value.trim();
+      if (val === ADMIN_PASSWORD) {
+        sessionStorage.setItem('adminAuth', 'true');
+        checkAuth();
+      } else {
+        alert('❌ 비밀번호가 올바르지 않습니다.');
+        document.getElementById('pw-input').value = '';
+        document.getElementById('pw-input').focus();
+      }
+    });
+
+    document.getElementById('pw-input').addEventListener('keyup', function (e) {
+      if (e.key === 'Enter') {
+        document.getElementById('pw-submit-btn').click();
+      }
+    });
+
+    // ─── 데이터 로드 ────────────────────────────────────────────────
+    function initAdmin() {
+      try {
+        let app;
+        try { app = firebase.app(); } catch (e) { app = firebase.initializeApp(firebaseConfig); }
+        const db = firebase.database();
+
+        db.ref('history').on('value', snap => {
+          const val = snap.val();
+          allHistory = [];
+          if (val) {
+            Object.keys(val).forEach(key => {
+              allHistory.push({
+                id: key,
+                ...val[key]
+              });
+            });
+          }
+          // 최신순 정렬
+          allHistory.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          renderHistory();
+        });
+      } catch (err) {
+        console.error(err);
+        document.getElementById('history-container').innerHTML = `<div class="empty-state">Firebase 오류: ${err.message}</div>`;
+      }
+    }
+
+    // ─── 날짜 포맷 ─────────────────────────────────────────────────
+    function formatDate(ts) {
+      if (!ts) return '일시 미상';
+      const d = new Date(ts);
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // ─── 랜더링 ───────────────────────────────────────────────────
+    function renderHistory() {
+      const container = document.getElementById('history-container');
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+
+      let filtered = allHistory;
+      if (query) {
+        filtered = allHistory.filter(item => {
+          const matchRoom = item.roomId && item.roomId.toLowerCase().includes(query);
+          const matchBlue = item.blueTeam && item.blueTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
+          const matchRed = item.redTeam && item.redTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
+          return matchRoom || matchBlue || matchRed;
+        });
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">${query ? '검색 결과가 없습니다.' : '아직 저장된 팀 배정 히스토리가 없습니다.'}</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const bluePlayers = (item.blueTeam || []).map(p => `
+          <div class="player-row">
+            <div class="player-left">
+              <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
+              <strong>${escapeHtml(p.nickname)}</strong>
+              ${p.isSub ? '<span class="sub-badge">부</span>' : ''}
+            </div>
+            <span class="tier-name">${p.tier || ''}</span>
+          </div>
+        `).join('');
+
+        const redPlayers = (item.redTeam || []).map(p => `
+          <div class="player-row">
+            <div class="player-left">
+              <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
+              <strong>${escapeHtml(p.nickname)}</strong>
+              ${p.isSub ? '<span class="sub-badge">부</span>' : ''}
+            </div>
+            <span class="tier-name">${p.tier || ''}</span>
+          </div>
+        `).join('');
+
+        const scoreDiffText = item.scoreDiff !== undefined ? `${item.scoreDiff.toFixed(1)}점 차` : '';
+
+        return `
+          <div class="history-card" id="card-${item.id}">
+            <div class="history-meta">
+              <div class="history-info">
+                <span class="history-time">📅 ${formatDate(item.createdAt)}</span>
+                <span class="history-room">방: ${item.roomId || 'UNKNOWN'}</span>
+                <span class="balance-badge ${item.balanceClass || 'balance-gold'}">
+                  ${item.balanceEmoji || '🟡'} ${item.balanceLabel || '황밸'} (${scoreDiffText})
+                </span>
+              </div>
+              <button class="btn-delete-card" onclick="deleteHistoryItem('${item.id}')">🗑️ 삭제</button>
+            </div>
+
+            <div class="teams-grid">
+              <div class="team-box blue">
+                <div class="team-title">
+                  <span>🔵 블루팀</span>
+                  <span>총점: ${(item.blueScore || 0).toFixed(1)}점</span>
+                </div>
+                ${bluePlayers}
+              </div>
+
+              <div class="team-box red">
+                <div class="team-title">
+                  <span>🔴 레드팀</span>
+                  <span>총점: ${(item.redScore || 0).toFixed(1)}점</span>
+                </div>
+                ${redPlayers}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // ─── 검색 이벤트 ────────────────────────────────────────────────
+    document.getElementById('search-input').addEventListener('input', renderHistory);
+
+    // ─── 단건 삭제 ─────────────────────────────────────────────────
+    function deleteHistoryItem(id) {
+      if (!confirm('이 히스토리 기록을 삭제하시겠습니까?')) return;
+      firebase.database().ref(`history/${id}`).remove().then(() => {
+        console.log('삭제 완료:', id);
+      }).catch(err => {
+        alert('삭제 실패: ' + err.message);
+      });
+    }
+
+    // ─── 전체 삭제 ─────────────────────────────────────────────────
+    document.getElementById('btn-clear-all').addEventListener('click', function () {
+      if (!confirm('⚠️ 모든 팀 배정 히스토리 기록을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+      firebase.database().ref('history').remove().then(() => {
+        alert('전체 기록이 삭제되었습니다.');
+      }).catch(err => {
+        alert('전체 삭제 실패: ' + err.message);
+      });
+    });
+
+    // 실행
+    checkAuth();
+  </script>
+</body>
+
+</html>
