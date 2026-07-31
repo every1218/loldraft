@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TeamDraft.lol – 대기실</title>
+  <meta name="google-site-verification" content="Hh8kxIxtBp3YFvHuTRQV_LOlJweGnw7EkowH7kgbw_I" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
   <link rel="stylesheet" href="css/style.css?v=1.1">
@@ -21,6 +22,13 @@
     </div>
     <div class="header-right">
       <button class="btn-destroy-room hidden" id="destroy-room-btn" title="방 폭파 (방장 전용)">💣 방 폭파</button>
+      <div class="feedback-btn-wrapper">
+        <button class="feedback-trigger-btn" id="feedback-trigger-btn" title="오류 제보 및 건의">📬</button>
+        <div class="feedback-tooltip" id="feedback-tooltip">
+          오류 제보 및 건의 : <span class="feedback-email" id="feedback-email">vschamplol@gmail.com</span>
+          <span class="copy-success-msg hidden" id="feedback-copy-msg">복사됨</span>
+        </div>
+      </div>
       <div class="player-count-badge">
         참가 <span id="active-count-hdr">0</span>/<span id="max-count-hdr">10</span>
       </div>
@@ -285,7 +293,8 @@
           </div>
         </div>
         <div class="form-actions-row">
-          <button type="button" class="btn btn-outline" id="add-as-waiting-btn" style="min-width: 130px;">대기로 추가</button>
+          <button type="button" class="btn btn-outline" id="add-as-waiting-btn" style="min-width: 130px;">대기로
+            추가</button>
           <button type="submit" class="btn btn-primary" id="add-submit-btn" style="min-width: 160px;">명단에 추가</button>
         </div>
       </form>
@@ -1547,6 +1556,44 @@
       document.getElementById('copy-link-btn').addEventListener('click', copyRoomLink);
       document.getElementById('assign-btn')?.addEventListener('click', handleAssign);
       document.getElementById('destroy-room-btn')?.addEventListener('click', handleDestroyRoom);
+
+      // 이메일 복사 기능 (헤더 문의 이모지 버튼 & 툴팁)
+      const feedbackTriggerBtn = document.getElementById('feedback-trigger-btn');
+      const feedbackTooltip = document.getElementById('feedback-tooltip');
+      const feedbackEmail = document.getElementById('feedback-email');
+      const feedbackCopyMsg = document.getElementById('feedback-copy-msg');
+
+      async function copyFeedbackEmail(e) {
+        if (e) e.stopPropagation();
+        const email = 'vschamplol@gmail.com';
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(email);
+          } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = email;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+          }
+
+          if (feedbackEmail) feedbackEmail.classList.add('copied');
+          if (feedbackCopyMsg) feedbackCopyMsg.classList.remove('hidden');
+
+          setTimeout(() => {
+            if (feedbackEmail) feedbackEmail.classList.remove('copied');
+            if (feedbackCopyMsg) feedbackCopyMsg.classList.add('hidden');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy email:', err);
+        }
+      }
+
+      if (feedbackTriggerBtn) feedbackTriggerBtn.addEventListener('click', copyFeedbackEmail);
+      if (feedbackTooltip) feedbackTooltip.addEventListener('click', copyFeedbackEmail);
 
       // 라인 변경 모달 이벤트
       document.getElementById('line-change-modal-close')?.addEventListener('click', closeLineChangeModal);

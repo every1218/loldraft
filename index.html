@@ -1,5 +1,6 @@
 <!-- npx serve . --listen 3000   -->
 <!-- http://localhost:3000/index.html -->
+<!-- http://localhost:3000/room.html?room=6B8ZNY -->
 
 <!DOCTYPE html>
 <html lang="ko">
@@ -9,6 +10,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TeamDraft.lol – 내전 팀 자동 배정</title>
   <meta name="description" content="리그 오브 레전드 내전 팀 자동 배정 서비스. 라인 배정과 점수 균형을 자동으로 최적화합니다.">
+  <meta name="keywords" content="롤 내전, 내전 팀 배정, 롤 팀 밸런스, TeamDraft, 팀드래프트">
+  <meta name="google-site-verification" content="Hh8kxIxtBp3YFvHuTRQV_LOlJweGnw7EkowH7kgbw_I" />
+  <link rel="canonical" href="https://teamdraft.lol/">
+
+  <!-- Open Graph / SEO -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://teamdraft.lol/">
+  <meta property="og:title" content="TeamDraft.lol – 내전 팀 자동 배정">
+  <meta property="og:description" content="리그 오브 레전드 내전 팀 자동 배정 서비스. 라인 배정과 점수 균형을 자동으로 최적화합니다.">
+  <meta property="og:image" content="https://teamdraft.lol/img/icon.png">
+
+  <!-- Google Search Console 소유 확인 태그 (발급받은 코드 입력) -->
+  <!-- <meta name="google-site-verification" content="여기에_구글_검증코드_입력" /> -->
+
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
   <link rel="stylesheet" href="css/style.css?v=1.1">
@@ -38,6 +53,11 @@
     <p style="margin-top: 16px; font-size: 0.78rem; color: var(--text-dim);">
       방을 만들면 링크가 생성됩니다. 참가자들에게 공유하세요.
     </p>
+
+    <div class="feedback-notice" style="margin-top: 16px; justify-content: center;">
+      오류 제보 및 건의 : <span class="feedback-email" id="feedback-email" title="클릭하여 이메일 복사">vschamplol@gmail.com</span>
+      <span class="copy-success-msg hidden" id="feedback-copy-msg">복사됨</span>
+    </div>
   </div>
 
   <!-- Firebase SDK -->
@@ -145,6 +165,43 @@
         btn.textContent = '방 만들기';
       }
     });
+
+    // 이메일 클릭 시 복사 기능
+    const feedbackEmail = document.getElementById('feedback-email');
+    const feedbackCopyMsg = document.getElementById('feedback-copy-msg');
+    if (feedbackEmail) {
+      feedbackEmail.addEventListener('click', async () => {
+        const email = 'vschamplol@gmail.com';
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(email);
+          } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = email;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+          }
+
+          feedbackEmail.classList.add('copied');
+          if (feedbackCopyMsg) {
+            feedbackCopyMsg.classList.remove('hidden');
+          }
+
+          setTimeout(() => {
+            feedbackEmail.classList.remove('copied');
+            if (feedbackCopyMsg) {
+              feedbackCopyMsg.classList.add('hidden');
+            }
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy email:', err);
+        }
+      });
+    }
   </script>
 </body>
 

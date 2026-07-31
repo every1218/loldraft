@@ -348,6 +348,77 @@ textarea {
   box-shadow: 0 0 8px rgba(192, 57, 43, 0.4);
 }
 
+/* ─── 문의 이모지 버튼 & 툴팁 ───────────────────────────────────── */
+.feedback-btn-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.feedback-trigger-btn {
+  background: rgba(200, 155, 60, 0.1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 3px 8px;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.feedback-trigger-btn:hover {
+  background: rgba(200, 155, 60, 0.25);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(200, 155, 60, 0.3);
+}
+
+.feedback-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: -10px;
+  background: rgba(13, 21, 38, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card), 0 4px 20px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+}
+
+.feedback-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  background: rgba(13, 21, 38, 0.95);
+  border-left: 1px solid var(--border-bright);
+  border-top: 1px solid var(--border-bright);
+  transform: rotate(45deg);
+}
+
+.feedback-btn-wrapper:hover .feedback-tooltip,
+.feedback-tooltip:hover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 .player-count-badge {
   font-size: 0.85rem;
   font-weight: 600;
@@ -2233,4 +2304,3 @@ textarea {
     padding-top: 10px;
   }
 }
-
