@@ -6,9 +6,35 @@
 //  3. [프로젝트 설정] → [내 앱] → </> 웹 앱 추가
 //  4. 아래 값들을 본인 프로젝트 값으로 교체
 //
-// Database 규칙 (개발 중):
+// Database 보안 규칙 (권장):
 // {
-//   "rules": { ".read": true, ".write": true }
+//   "rules": {
+//     "rooms": {
+//       ".read": true,
+//       "$roomId": {
+//         ".write": true,
+//         "meta": {
+//           ".validate": "newData.hasChildren(['createdAt', 'expiresAt'])"
+//         },
+//         "players": {
+//           "$playerId": {
+//             ".validate": "newData.hasChildren(['nickname', 'mainLine'])"
+//           }
+//         }
+//       }
+//     },
+//     "history": {
+//       ".read": true,
+//       ".write": true,
+//       "$historyId": {
+//         ".validate": "!newData.exists() || newData.hasChildren(['createdAt', 'roomId', 'blueTeam', 'redTeam'])"
+//       }
+//     },
+//     "historySeq": {
+//       ".read": true,
+//       ".write": "newData.isNumber()"
+//     }
+//   }
 // }
 
 const firebaseConfig = {

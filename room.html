@@ -9,7 +9,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-EEHB82GY49"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-EEHB82GY49');
   </script>
@@ -155,7 +155,7 @@
                     <strong class="algo-item-title">팀 배정 가능 여부 확인</strong>
                     <div class="algo-item-desc">
                       • 현재 명단이 10명인지 확인<br>
-                      • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 검토
+                      • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 검증
                     </div>
                   </div>
                 </div>
@@ -165,7 +165,7 @@
                   <div class="algo-simple-item">
                     <strong class="algo-item-title">1-1. 희망 라인 & 부라인 탐색</strong>
                     <div class="algo-item-desc">
-                      • 선착순 기준 <span class="text-gold">주라인 → 부라인</span> 순서 배치
+                      • 방에 들어온 선착순으로 <span class="text-gold">희망라인 → 부라인</span> 순서 배치
                     </div>
                   </div>
 
@@ -184,7 +184,7 @@
                     <strong class="algo-item-title">2-1. 진영 조합 계산</strong>
                     <div class="algo-item-desc">
                       • 라인 배정 조합(최대 30개) × 라인별 블루/레드 분할(32가지) = <span class="text-gold">최대 960가지</span> 조합 전수 계산<br>
-                      • 티어/LP 기반 라인 점수 합산 후 팀 총점 비교
+                      • 티어 기반 라인 점수 합산 후 팀 총점 비교
                     </div>
                   </div>
 
@@ -409,6 +409,15 @@
     let comboIndex = 0;
 
     // ─── 유틸 ───────────────────────────────────────────────────────
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     function toast(msg, type = 'info') {
       const el = document.createElement('div');
       el.className = `toast toast-${type}`;
@@ -482,6 +491,7 @@
       const isMe = player.id === myPlayerId;
       const isHostPlayer = (roomMeta.hostPlayerId && player.id === roomMeta.hostPlayerId) || (isHost && isMe);
       const adjusted = player.adjustedTier && player.adjustedTier !== player.tier;
+      const safeNick = escapeHtml(player.nickname || '');
       const opggNick = encodeURIComponent((player.nickname || '').replace('#', '-'));
       const tierLabel = getTierLabel(player);
       const profileIconUrl = getPlayerProfileIcon(player);
@@ -585,7 +595,7 @@
           <img src="${profileIconUrl}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
         </div>
         <a href="https://www.op.gg/summoners/kr/${opggNick}" target="_blank"
-           class="card-nickname">${player.nickname}</a>
+           class="card-nickname">${safeNick}</a>
       </div>
       ${controlsHTML}
     </div>`;
@@ -701,6 +711,7 @@
           badgeHTML = '<span class="sub-badge">부</span>';
         }
         const opgg = encodeURIComponent((p.nickname || '').replace('#', '-'));
+        const safeNick = escapeHtml(p.nickname || '');
 
         const scoresObj = getScoreForPlayer(tier, p.lp);
         let lineScore = scoresObj ? scoresObj[line] : 0;
@@ -721,7 +732,7 @@
             <img src="${getPlayerProfileIcon(p)}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
           </div>
           <a href="https://www.op.gg/summoners/kr/${opgg}" target="_blank"
-             class="result-nickname-link">${p.nickname}${badgeHTML}</a>
+             class="result-nickname-link">${safeNick}${badgeHTML}</a>
         </div>
         <div class="result-tier-col">
           <img src="${TIER_ICONS[tier]}" alt="${tier}"
@@ -760,10 +771,6 @@
       if (adjustLogList.length === 0) {
         listEl.innerHTML = '<p class="adjust-log-empty">조정 이력이 없습니다.</p>';
         return;
-      }
-
-      function escapeHtml(str) {
-        return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
       function renderLineIconsHTML(lineKeys) {
@@ -856,6 +863,16 @@
       }).join('');
     }
 
+    function handleFbError(err, actionName) {
+      if (!err) return;
+      console.error(err);
+      if (err.message && (err.message.includes('PERMISSION_DENIED') || err.message.includes('permission_denied'))) {
+        toast('❌ Firebase 권한 오류: Realtime Database 규칙(.read, .write: true)을 확인해주세요.', 'error');
+      } else {
+        toast(`${actionName} 실패: ` + err.message, 'error');
+      }
+    }
+
     function adjustTier(playerId, dir) {
       if (!isHost) return;
       const p = playersMap[playerId];
@@ -867,11 +884,11 @@
         const curLp = parseInt(p.lp) || 0;
         if (dir < 0 && curLp === 0) {
           // 0LP에서 티어강등 시 다이아1로 강등
-          firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set('다이아1');
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set('다이아1', err => handleFbError(err, '티어강등'));
           pushAdjustLog(`${tag} ${p.nickname}: ${cur} 0LP → 다이아1`);
         } else {
           const newLp = Math.max(0, curLp + (dir * 100));
-          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(newLp);
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(newLp, err => handleFbError(err, dir > 0 ? '티어상향' : '티어강등'));
           pushAdjustLog(`${tag} ${p.nickname}: ${cur} ${curLp}LP → ${cur} ${newLp}LP`);
         }
       } else {
@@ -1426,8 +1443,7 @@
         localStorage.setItem(`playerId_${roomId}`, myPlayerId);
         await newRef.set(playerData);
       } catch (err) {
-        console.error(err);
-        toast('참가 실패: ' + err.message, 'error');
+        handleFbError(err, '참가');
         submitBtn.disabled = false;
         submitBtn.textContent = '참가하기';
       }
@@ -1534,7 +1550,7 @@
         document.querySelectorAll('#add-main-line-selector .line-btn, #add-sub-line-selector .line-btn').forEach(b => b.classList.remove('selected'));
         toast(status === 'waiting' ? '대기 명단에 추가되었습니다.' : '명단에 추가되었습니다.', 'info');
       } catch (err) {
-        toast('추가 실패: ' + err.message, 'error');
+        handleFbError(err, '플레이어 추가');
       }
     }
 

@@ -159,7 +159,11 @@
         location.href = `room.html?room=${roomId}`;
       } catch (err) {
         console.error(err);
-        alert('방 생성에 실패했습니다. Firebase 설정을 확인해주세요.\n오류: ' + err.message);
+        if (err.message && (err.message.includes('PERMISSION_DENIED') || err.message.includes('permission_denied'))) {
+          alert('❌ Firebase 권한 오류 (PERMISSION_DENIED)\n\nFirebase Console (https://console.firebase.google.com)에 접속하여:\nRealtime Database -> [규칙] 탭에서 rules를 아래와 같이 변경해주세요:\n\n{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}');
+        } else {
+          alert('방 생성에 실패했습니다. Firebase 설정을 확인해주세요.\n오류: ' + err.message);
+        }
         btn.disabled = false;
         btn.textContent = '방 만들기';
       }
