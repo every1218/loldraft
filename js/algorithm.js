@@ -32,6 +32,18 @@ function validateForAssignment(activePlayers) {
     }
   }
 
+  // 1단계(개별 라인 2명 이상) 통과 후, 실제 5개 라인 동시 배정(백트래킹) 가능 여부 검증
+  const sorted = [...activePlayers].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+  const lineAssignments = [];
+  _findLineAssignments(sorted, 0, {}, {}, lineAssignments);
+
+  if (lineAssignments.length === 0) {
+    return {
+      valid: false,
+      reason: `10명의 희망/부라인 조합으로 5개 라인(각 2명)을 모두 채울 수 없습니다. 부라인을 추가하거나 대기자와 교체해주세요.`
+    };
+  }
+
   return { valid: true };
 }
 

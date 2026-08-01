@@ -114,7 +114,7 @@
         <span>현재 명단</span>
         <span class="count" id="active-count-lbl">0/10</span>
 
-        <!-- 팀 배정 불가 안내 버튼 (모든 사용자 접근 가능) -->
+        <!-- 팀 배정 불가 안내 버튼 (현재 명단 10/10 옆) -->
         <button class="btn btn-cannot-assign hidden" id="cannot-assign-btn">
           ⚠️ 팀 배정 불가
         </button>
@@ -128,6 +128,7 @@
           <div class="popover-body" id="cannot-assign-reason-text"></div>
         </div>
       </div>
+
       <div style="display:flex;align-items:center;gap:8px">
         <!-- 방장 전용: 플레이어 직접 추가 버튼 -->
         <button class="btn btn-secondary hidden" id="add-player-btn" style="padding:4px 12px;font-size:0.8rem">
@@ -155,7 +156,8 @@
                     <strong class="algo-item-title">팀 배정 가능 여부 확인</strong>
                     <div class="algo-item-desc">
                       • 현재 명단이 10명인지 확인<br>
-                      • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 검증
+                      • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 확인<br>
+                      • 실제 5개 라인을 모두 채우는 조합이 1개 이상 존재하는지 사전 검증
                     </div>
                   </div>
                 </div>
@@ -1008,7 +1010,6 @@
       const result = runTeamAssignment(active);
 
       if (!result.success) {
-        alert('❌ 팀 배정 불가\n\n' + result.reason);
         return;
       }
 

@@ -1784,6 +1784,7 @@ textarea {
   top: calc(100% + 8px);
   left: 0;
   width: 320px;
+  max-width: 90vw;
   background: #190f14;
   border: 1px solid rgba(224, 80, 64, 0.6);
   border-radius: var(--radius-md);
