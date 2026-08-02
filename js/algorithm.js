@@ -395,7 +395,7 @@ function runTeamAssignment(activePlayers, mode = '10') {
   const playerScores = {};
   for (const p of sorted) {
     const tier = getEffectiveTier(p);
-    const baseScores = getScoreForPlayer(tier, p.lp || 0);
+    const baseScores = getScoreForPlayer(tier, p.lp || 0, p.gamesPlayed || 0);
     if (p.mainLine === 'all') {
       const advantageScores = {};
       for (const line of LINES_ORDER) {

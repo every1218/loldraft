@@ -133,20 +133,46 @@ const MASTER_LP_SCORES = [
 ];
 
 /**
- * 티어와 LP로 라인별 점수 반환
+ * 솔로랭크 판수 어드밴티지 계산 (100판: -1점, 300판: -2점, 500판이상: -3점)
+ * @param {number} gamesPlayed 
+ * @returns {number}
+ */
+function getGameAdvantage(gamesPlayed) {
+  const g = parseInt(gamesPlayed) || 0;
+  if (g >= 500) return -3;
+  if (g >= 300) return -2;
+  if (g >= 100) return -1;
+  return 0;
+}
+
+/**
+ * 티어, LP, 판수로 라인별 점수 반환
  * @param {string} tier - 티어명 (예: '골드2', '마스터')
  * @param {number} lp   - LP (마스터 이상만 사용)
+ * @param {number} gamesPlayed - 솔랭 판수
  * @returns {{ top, jungle, mid, adc, support }}
  */
-function getScoreForPlayer(tier, lp) {
+function getScoreForPlayer(tier, lp, gamesPlayed = 0) {
+  let baseObj;
   if (tier === '실버3이하') tier = '실버3';
   if (MASTER_TIERS.includes(tier)) {
     const lpNum = parseInt(lp) || 0;
     const row = MASTER_LP_SCORES.find(r => lpNum >= r.lpMin && lpNum <= r.lpMax)
       || MASTER_LP_SCORES[MASTER_LP_SCORES.length - 1];
-    return { top: row.top, jungle: row.jungle, mid: row.mid, adc: row.adc, support: row.support };
+    baseObj = { top: row.top, jungle: row.jungle, mid: row.mid, adc: row.adc, support: row.support };
+  } else {
+    baseObj = TIER_SCORES[tier] || TIER_SCORES['골드4'];
   }
-  return TIER_SCORES[tier] || TIER_SCORES['골드4'];
+
+  const adv = getGameAdvantage(gamesPlayed);
+  if (adv !== 0) {
+    const adjustedObj = {};
+    for (const line of LINES_ORDER) {
+      adjustedObj[line] = Math.round((baseObj[line] + adv) * 10) / 10;
+    }
+    return adjustedObj;
+  }
+  return baseObj;
 }
 
 /**

@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=2.0">
+  <link rel="stylesheet" href="css/style.css?v=2.1">
   <style>
     .admin-container {
       max-width: 1000px;
@@ -218,6 +218,7 @@
     }
 
     @media (max-width: 768px) {
+
       .teams-grid,
       .teams-pair-row {
         grid-template-columns: 1fr;
@@ -740,12 +741,12 @@
               <div class="header-left-summary">
                 <span class="toggle-icon">▶</span>
                 <span class="history-no-badge">${numDisplay}</span>
-                ${modeBadgeHtml}
                 <span class="history-time">${formatDate(item.createdAt)}</span>
                 <span class="host-badge">👑 ${escapeHtml(hostName)}</span>
                 <span class="room-badge">#${item.roomId || 'UNKNOWN'}</span>
+                ${modeBadgeHtml}
                 <span class="balance-badge ${item.balanceClass || 'balance-gold'}">
-                  ${item.balanceEmoji || '🟡'} ${item.balanceLabel || '황밸'} (${scoreDiffText})
+                  ${item.balanceEmoji || '🟡'} ${item.balanceLabel || '황밸'}
                 </span>
               </div>
               <div class="header-right-actions">

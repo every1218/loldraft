@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.6">
+  <link rel="stylesheet" href="css/style.css?v=1.7">
 </head>
 
 <body>
@@ -75,7 +75,7 @@
           <div class="form-grid-2col">
             <div class="form-col-left">
               <div class="form-group">
-                <label for="nickname-input">라이엇 닉네임(#태그 포함)</label>
+                <label for="nickname-input">라이엇 닉네임(#태그 포함) <span style="color:var(--gold)">*</span></label>
                 <input type="text" id="nickname-input" placeholder="닉네임#KR1" required maxlength="60">
               </div>
               <div class="form-group">
@@ -222,7 +222,15 @@
               </div>
               <div class="popover-body score-popover-body">
                 <div class="score-advantage-notice">
-                  <span class="notice-bullet">•</span> 상관없음 어드밴티지 : <span class="advantage-badge">-2점</span>
+                  <div class="notice-row">
+                    <span class="notice-label"><span class="notice-bullet">•</span> 상관없음 어드밴티지</span>
+                    <span class="advantage-badge">-2</span>
+                  </div>
+                  <div class="notice-row">
+                    <span class="notice-label"><span class="notice-bullet">•</span> 솔랭판수 어드밴티지<span
+                        class="notice-subtext">(100/300/500+)</span></span>
+                    <span class="advantage-badge">-1 / -2 / -3</span>
+                  </div>
                 </div>
                 <img src="img/score.png" alt="티어별 점수표" class="score-table-img">
               </div>
@@ -289,7 +297,7 @@
         <div class="form-grid-2col">
           <div class="form-col-left">
             <div class="form-group">
-              <label for="add-nickname">라이엇 닉네임(#태그 포함)</label>
+              <label for="add-nickname">라이엇 닉네임(#태그 포함) <span style="color:var(--gold)">*</span></label>
               <input type="text" id="add-nickname" placeholder="닉네임#KR1" required maxlength="60">
             </div>
             <div class="form-group">
@@ -417,13 +425,90 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-  <script src="js/scores.js?v=1.5"></script>
-  <script src="js/algorithm.js?v=2.2"></script>
+  <script src="js/scores.js?v=1.6"></script>
+  <script src="js/algorithm.js?v=2.3"></script>
 
   <script>
     // ═══════════════════════════════════════════════════════════════════
     //  ROOM.JS  –  대기실 및 팀 배정 로직
-    // ═══════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════
+    // ─── 닉네임 정규화 (#태그 미입력 시 자동 #KR1 추가) ──────────────
+    function normalizeNickname(input) {
+      if (!input) return '';
+      let str = input.trim();
+      if (!str.includes('#')) {
+        return str + '#KR1';
+      }
+      return str;
+    }
+
+    // ─── 라이엇 API 정보 조회 (Cloudflare Worker 프록시 활용) ─────────────────
+    const RIOT_PROXY_BASE = 'https://raspy-fire-ac20.vschamplol.workers.dev';
+
+    async function fetchRiotPlayerData(nickname) {
+      const defaultResult = { profileIcon: 29, summonerLevel: 0, gamesPlayed: 0, found: false };
+      if (!nickname) return defaultResult;
+
+      let parts = nickname.split('#');
+      let gameName = (parts[0] || '').trim();
+      let tagLine = (parts[1] || 'KR1').trim();
+
+      if (!gameName) return defaultResult;
+
+      try {
+        // 1. Account-v1 API (Riot ID -> PUUID) - region=asia
+        const accountUrl = `${RIOT_PROXY_BASE}/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?region=asia`;
+        let res = await fetch(accountUrl).catch(() => null);
+
+        if (!res || !res.ok) {
+          console.warn('Riot Account API lookup failed:', res ? res.status : 'Network/Proxy error');
+          return defaultResult;
+        }
+
+        const accountData = await res.json();
+        const puuid = accountData ? accountData.puuid : null;
+        if (!puuid) return defaultResult;
+
+        // 2. Summoner-v4 API (PUUID -> ProfileIcon & Level) - region=kr
+        const summonerUrl = `${RIOT_PROXY_BASE}/lol/summoner/v4/summoners/by-puuid/${puuid}?region=kr`;
+        let sumRes = await fetch(summonerUrl).catch(() => null);
+
+        let profileIcon = 29;
+        let summonerLevel = 0;
+
+        if (sumRes && sumRes.ok) {
+          const sumData = await sumRes.json();
+          profileIcon = sumData.profileIconId || 29;
+          summonerLevel = sumData.summonerLevel || 0;
+        }
+
+        // 3. League-v4 API BY PUUID (PUUID -> Solo Rank Games Played ONLY) - region=kr
+        let gamesPlayed = 0;
+        const leagueUrl = `${RIOT_PROXY_BASE}/lol/league/v4/entries/by-puuid/${puuid}?region=kr`;
+        let leagueRes = await fetch(leagueUrl).catch(() => null);
+
+        if (leagueRes && leagueRes.ok) {
+          const leagueEntries = await leagueRes.json();
+          if (Array.isArray(leagueEntries)) {
+            // 자유랭크 제외, 솔로랭크만 카운트!
+            const soloEntry = leagueEntries.find(e => e.queueType === 'RANKED_SOLO_5x5');
+            if (soloEntry) {
+              gamesPlayed = (soloEntry.wins || 0) + (soloEntry.losses || 0);
+            }
+          }
+        }
+
+        return {
+          profileIcon: profileIcon || 29,
+          summonerLevel: summonerLevel || 0,
+          gamesPlayed: gamesPlayed || 0,
+          found: true
+        };
+      } catch (err) {
+        console.error('Riot API Fetch Error:', err);
+        return defaultResult;
+      }
+    }
 
     // ─── 상태 변수 ──────────────────────────────────────────────────
     let roomId = null;
@@ -489,30 +574,19 @@
     ];
 
     function getProfileIconUrl(iconId) {
-      if (!iconId) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/4020.jpg`;
+      if (!iconId) return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/29.jpg`;
       if (typeof iconId === 'string' && iconId.startsWith('http')) return iconId;
       return `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/${iconId}.jpg`;
-    }
-
-    function getRandomUnusedIconId() {
-      const usedIds = new Set(Object.values(playersMap).map(p => p.profileIcon).filter(Boolean));
-      const available = PROFILE_ICON_IDS.filter(id => !usedIds.has(id));
-      const pool = available.length > 0 ? available : PROFILE_ICON_IDS;
-      return pool[Math.floor(Math.random() * pool.length)];
     }
 
     function getPlayerProfileIcon(player) {
       if (player && player.profileIcon) {
         return getProfileIconUrl(player.profileIcon);
       }
-      if (player && player.id) {
-        const allPlayers = Object.values(playersMap).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-        const pIndex = allPlayers.findIndex(p => p.id === player.id);
-        const assignedId = PROFILE_ICON_IDS[(pIndex >= 0 ? pIndex : 0) % PROFILE_ICON_IDS.length];
-        return getProfileIconUrl(assignedId);
-      }
-      return getProfileIconUrl(4020);
+      return getProfileIconUrl(29);
     }
+
+
 
     // ─── 플레이어 카드 HTML 생성 ──────────────────────────────────────
     function buildPlayerCard(player, isWaiting) {
@@ -534,17 +608,41 @@
           ${meBadgeHTML}
         </div>` : '';
 
-      // 점수 계산 (주라인 점수 또는 상관없음 시 5라인 중앙값 표시)
+      // 점수 계산 (주라인 점수 또는 상관없음 시 5라인 중앙값 표시, 판수/상관없음 어드밴티지 합산)
       let scoreTagHTML = '';
-      const scoresObj = getScoreForPlayer(tier, player.lp);
+      const scoresObj = getScoreForPlayer(tier, player.lp, player.gamesPlayed);
+      const gameAdv = getGameAdvantage(player.gamesPlayed || 0);
+      const isAllLine = player.mainLine === 'all';
+
+      // 툴팁 텍스트 구성
+      const tooltipLines = [];
+      if (isAllLine) {
+        tooltipLines.push('상관없음 어드밴티지 -2');
+      }
+      if (gameAdv < 0) {
+        tooltipLines.push(`솔랭판수 어드밴티지 ${gameAdv} (${player.gamesPlayed || 0}판)`);
+      }
+
+      let tooltipBoxHTML = '';
+      if (tooltipLines.length > 0) {
+        const linesHTML = tooltipLines.map(line => `<div>${escapeHtml(line)}</div>`).join('');
+        tooltipBoxHTML = `<div class="score-adv-tooltip-box">${linesHTML}</div>`;
+      }
+
       if (scoresObj) {
-        if (player.mainLine && player.mainLine !== 'all' && scoresObj[player.mainLine]) {
-          scoreTagHTML = `<span class="player-score-tag">${scoresObj[player.mainLine]}점</span>`;
+        if (player.mainLine && player.mainLine !== 'all' && scoresObj[player.mainLine] != null) {
+          const scoreVal = scoresObj[player.mainLine];
+          const advBadge = gameAdv < 0 ? ` <span class="score-adv-text">(${gameAdv})</span>` : '';
+          const triggerClass = tooltipBoxHTML ? 'score-tooltip-trigger' : '';
+          scoreTagHTML = `<span class="player-score-tag ${triggerClass}">${scoreVal}점${advBadge}${tooltipBoxHTML}</span>`;
         } else if (player.mainLine === 'all') {
           const lineScores = LINES_ORDER.map(l => scoresObj[l]).filter(s => typeof s === 'number').sort((a, b) => a - b);
           if (lineScores.length > 0) {
             const median = lineScores[Math.floor(lineScores.length / 2)];
-            scoreTagHTML = `<span class="player-score-tag" title="5라인 중앙값 점수 (상관없음 어드밴티지 -2점 적용)">약 ${median}점 <span class="score-adv-text">(-2)</span></span>`;
+            const effectiveMedian = Math.round((median - 2) * 10) / 10;
+            const totalAdv = -2 + gameAdv;
+            const triggerClass = tooltipBoxHTML ? 'score-tooltip-trigger' : '';
+            scoreTagHTML = `<span class="player-score-tag ${triggerClass}">약 ${effectiveMedian}점 <span class="score-adv-text">(${totalAdv})</span>${tooltipBoxHTML}</span>`;
           }
         }
       }
@@ -621,8 +719,9 @@
         ${sublineSectionHTML}
       </div>
       <div class="card-nickname-row">
-        <div class="profile-icon-circle">
-          <img src="${profileIconUrl}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
+        <div class="profile-icon-circle" title="소환사 레벨: ${player.summonerLevel != null ? player.summonerLevel : 0}">
+          <img src="${profileIconUrl}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(29)}'">
+          <span class="level-badge">${player.summonerLevel != null ? player.summonerLevel : 0}</span>
         </div>
         <a href="https://www.op.gg/summoners/kr/${opggNick}" target="_blank"
            class="card-nickname opgg-link">
@@ -829,7 +928,7 @@
         const opgg = encodeURIComponent((p.nickname || '').replace('#', '-'));
         const safeNick = escapeHtml(p.nickname || '');
 
-        const scoresObj = getScoreForPlayer(tier, p.lp);
+        const scoresObj = getScoreForPlayer(tier, p.lp, p.gamesPlayed);
         let lineScore = scoresObj ? scoresObj[line] : 0;
         if (p.mainLine === 'all' && lineScore) {
           lineScore = Math.round((lineScore - 2) * 10) / 10;
@@ -1654,13 +1753,13 @@
 
     // ─── 티어 메트릭스 그리드 셀렉터 설정 ─────────────────────────────
     const TIER_GROUPS = [
-      { name: '아이언', icon: 'img/iron.png', divisions: ['아이언4', '아이언3', '아이언2', '아이언1'] },
-      { name: '브론즈', icon: 'img/bronze.png', divisions: ['브론즈4', '브론즈3', '브론즈2', '브론즈1'] },
-      { name: '실버', icon: 'img/silver.png', divisions: ['실버4', '실버3', '실버2', '실버1'] },
-      { name: '골드', icon: 'img/gold.png', divisions: ['골드4', '골드3', '골드2', '골드1'] },
-      { name: '플래티넘', icon: 'img/platinum.png', divisions: ['플래티넘4', '플래티넘3', '플래티넘2', '플래티넘1'] },
-      { name: '에메랄드', icon: 'img/emerald.png', divisions: ['에메랄드4', '에메랄드3', '에메랄드2', '에메랄드1'] },
-      { name: '다이아', icon: 'img/diamond.png', divisions: ['다이아4', '다이아3', '다이아2', '다이아1'] }
+      { name: '아이언', icon: 'img/iron.png', divisions: ['아이언1', '아이언2', '아이언3', '아이언4'] },
+      { name: '브론즈', icon: 'img/bronze.png', divisions: ['브론즈1', '브론즈2', '브론즈3', '브론즈4'] },
+      { name: '실버', icon: 'img/silver.png', divisions: ['실버1', '실버2', '실버3', '실버4'] },
+      { name: '골드', icon: 'img/gold.png', divisions: ['골드1', '골드2', '골드3', '골드4'] },
+      { name: '플래티넘', icon: 'img/platinum.png', divisions: ['플래티넘1', '플래티넘2', '플래티넘3', '플래티넘4'] },
+      { name: '에메랄드', icon: 'img/emerald.png', divisions: ['에메랄드1', '에메랄드2', '에메랄드3', '에메랄드4'] },
+      { name: '다이아', icon: 'img/diamond.png', divisions: ['다이아1', '다이아2', '다이아3', '다이아4'] }
     ];
 
     const MASTER_TIERS_INFO = [
@@ -1669,7 +1768,7 @@
       { name: '챌린저', icon: 'img/challenger.png', tier: '챌린저' }
     ];
 
-    const ROMAN_NUMS = ['IV', 'III', 'II', 'I'];
+    const ROMAN_NUMS = ['I', 'II', 'III', 'IV'];
 
     function setupTierMatrixPicker(containerId, hiddenInputId, lpInputId) {
       const container = document.getElementById(containerId);
@@ -1756,7 +1855,8 @@
     async function handleJoinSubmit(e) {
       e.preventDefault();
 
-      const nickname = document.getElementById('nickname-input').value.trim();
+      const rawNick = document.getElementById('nickname-input').value.trim();
+      const nickname = normalizeNickname(rawNick);
       const tier = document.getElementById('tier-select').value;
       const lp = MASTER_TIERS.includes(tier) ? (parseInt(document.getElementById('lp-input').value) || 0) : null;
       const mainLine = document.querySelector('#main-line-selector .line-btn.selected')?.dataset.line;
@@ -1770,7 +1870,16 @@
       const active = Object.values(playersMap).filter(p => p.status === 'active');
       const status = active.length < maxCount ? 'active' : 'waiting';
 
-      const profileIcon = getRandomUnusedIconId();
+      const submitBtn = document.getElementById('join-submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '라이엇 정보 조회 중...';
+
+      let riotData = { profileIcon: 29, summonerLevel: 0, gamesPlayed: 0 };
+      try {
+        riotData = await fetchRiotPlayerData(nickname);
+      } catch (err) {
+        console.warn('Riot API Fetch Error:', err);
+      }
 
       const playerData = {
         nickname,
@@ -1778,14 +1887,12 @@
         lp,
         mainLine,
         subLines,
-        profileIcon,
+        profileIcon: riotData.profileIcon || 29,
+        summonerLevel: riotData.summonerLevel != null ? riotData.summonerLevel : 0,
+        gamesPlayed: riotData.gamesPlayed || 0,
         status,
         joinedAt: firebase.database.ServerValue.TIMESTAMP
       };
-
-      const submitBtn = document.getElementById('join-submit-btn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '참가 중...';
 
       try {
         const newRef = firebase.database().ref(`rooms/${roomId}/players`).push();
@@ -1872,7 +1979,8 @@
     }
 
     async function submitAddPlayer(forceWaiting) {
-      const nickname = document.getElementById('add-nickname').value.trim();
+      const rawNick = document.getElementById('add-nickname').value.trim();
+      const nickname = normalizeNickname(rawNick);
       const tier = document.getElementById('add-tier').value;
       const lp = MASTER_TIERS.includes(tier) ? (parseInt(document.getElementById('add-lp').value) || 0) : null;
       const mainLine = document.querySelector('#add-main-line-selector .line-btn.selected')?.dataset.line;
@@ -1885,11 +1993,21 @@
       const maxCount = currentMode === '20' ? 20 : 10;
       const active = Object.values(playersMap).filter(p => p.status === 'active');
       const status = (forceWaiting || active.length >= maxCount) ? 'waiting' : 'active';
-      const profileIcon = getRandomUnusedIconId();
+
+      let riotData = { profileIcon: 29, summonerLevel: 0, gamesPlayed: 0 };
+      try {
+        riotData = await fetchRiotPlayerData(nickname);
+      } catch (err) {
+        console.warn('Riot API Fetch Error:', err);
+      }
 
       try {
         await firebase.database().ref(`rooms/${roomId}/players`).push({
-          nickname, tier, lp, mainLine, subLines, profileIcon, status,
+          nickname, tier, lp, mainLine, subLines,
+          profileIcon: riotData.profileIcon || 29,
+          summonerLevel: riotData.summonerLevel != null ? riotData.summonerLevel : 0,
+          gamesPlayed: riotData.gamesPlayed || 0,
+          status,
           joinedAt: firebase.database.ServerValue.TIMESTAMP,
           addedByHost: true
         });
