@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.4">
+  <link rel="stylesheet" href="css/style.css?v=1.6">
 </head>
 
 <body>
@@ -75,7 +75,7 @@
           <div class="form-grid-2col">
             <div class="form-col-left">
               <div class="form-group">
-                <label for="nickname-input">라이엇 닉네임</label>
+                <label for="nickname-input">라이엇 닉네임(#태그 포함)</label>
                 <input type="text" id="nickname-input" placeholder="닉네임#KR1" required maxlength="60">
               </div>
               <div class="form-group">
@@ -114,6 +114,11 @@
         <span>현재 명단</span>
         <span class="count" id="active-count-lbl">0/10</span>
 
+        <!-- 모드 전환 버튼 (10인 2팀 모드 / 20인 4팀 모드) - 방장 전용 -->
+        <button class="btn btn-mode-toggle hidden" id="mode-toggle-btn" title="모드 전환 (방장 전용)">
+          ⚔️ 10인 2팀 모드
+        </button>
+
         <!-- 팀 배정 불가 안내 버튼 (현재 명단 10/10 옆) -->
         <button class="btn btn-cannot-assign hidden" id="cannot-assign-btn">
           ⚠️ 팀 배정 불가
@@ -148,7 +153,7 @@
                 <span>🧠 팀 드래프트 알고리즘</span>
                 <button class="popover-close-btn" id="algo-close-btn">✕</button>
               </div>
-              <div class="popover-body algo-popover-body">
+              <div class="popover-body algo-popover-body" id="algo-popover-body">
 
                 <div class="algo-section-head">📌 STEP 0. 사전 검증</div>
                 <div class="algo-simple-group">
@@ -284,7 +289,7 @@
         <div class="form-grid-2col">
           <div class="form-col-left">
             <div class="form-group">
-              <label for="add-nickname">라이엇 닉네임</label>
+              <label for="add-nickname">라이엇 닉네임(#태그 포함)</label>
               <input type="text" id="add-nickname" placeholder="닉네임#KR1" required maxlength="60">
             </div>
             <div class="form-group">
@@ -342,6 +347,25 @@
     </div>
   </div>
 
+  <!-- ═══ 확인 (퇴장/강퇴) 모달 ═════════════════════════════════════════ -->
+  <div class="modal-overlay hidden" id="confirm-modal">
+    <div class="modal-card" style="max-width: 360px; text-align: center;">
+      <div class="modal-header" style="justify-content: center; position: relative;">
+        <h3 id="confirm-modal-title">🚪 퇴장 확인</h3>
+        <button type="button" class="modal-close-btn" id="confirm-modal-close"
+          style="position: absolute; right: 0; top: 0;">✕</button>
+      </div>
+      <div style="padding: 16px 0 24px 0;">
+        <p id="confirm-modal-msg"
+          style="font-size: 15px; color: var(--text-primary); line-height: 1.5; margin: 0; white-space: pre-wrap;"></p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-outline" style="flex:1;" id="confirm-modal-cancel-btn">취소</button>
+        <button type="button" class="btn btn-danger" style="flex:1;" id="confirm-modal-ok-btn">확인</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ 결과 ═════════════════════════════════════════════════════ -->
   <div class="section hidden result-section" id="result-section">
 
@@ -393,8 +417,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="js/firebase-config.js"></script>
-  <script src="js/scores.js?v=1.4"></script>
-  <script src="js/algorithm.js?v=1.4"></script>
+  <script src="js/scores.js?v=1.5"></script>
+  <script src="js/algorithm.js?v=2.2"></script>
 
   <script>
     // ═══════════════════════════════════════════════════════════════════
@@ -426,6 +450,10 @@
       el.textContent = msg;
       document.getElementById('toast-container').appendChild(el);
       setTimeout(() => el.remove(), 3000);
+    }
+
+    function pushRoomNotification(msg, type = 'info') {
+      toast(msg, type);
     }
 
     function showSection(name) {
@@ -597,7 +625,12 @@
           <img src="${profileIconUrl}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
         </div>
         <a href="https://www.op.gg/summoners/kr/${opggNick}" target="_blank"
-           class="card-nickname">${safeNick}</a>
+           class="card-nickname opgg-link">
+          <span class="nick-text">${safeNick}</span>
+          <span class="opgg-tooltip-box">
+            <span class="opgg-brand">OP.GG</span> 전적 보기 <span class="opgg-arrow">↗</span>
+          </span>
+        </a>
       </div>
       ${controlsHTML}
     </div>`;
@@ -609,24 +642,38 @@
       const active = all.filter(p => p.status === 'active');
       const waiting = all.filter(p => p.status === 'waiting');
 
+      const currentMode = roomMeta.mode || '10';
+      const maxCount = currentMode === '20' ? 20 : 10;
+
       document.getElementById('active-players-grid').innerHTML =
         active.length ? active.map(p => buildPlayerCard(p, false)).join('') :
           '<p style="color:var(--text-dim);padding:16px">아직 참가자가 없습니다.</p>';
 
-      document.getElementById('active-count-lbl').textContent = `${active.length}/10`;
+      document.getElementById('active-count-lbl').textContent = `${active.length}/${maxCount}`;
 
-      // 대기 명단 항상 표시
+      const activeHdr = document.getElementById('active-count-hdr');
+      if (activeHdr) activeHdr.textContent = active.length;
+      const maxHdr = document.getElementById('max-count-hdr');
+      if (maxHdr) maxHdr.textContent = maxCount;
+
+      const modeBtn = document.getElementById('mode-toggle-btn');
+      if (modeBtn) {
+        modeBtn.textContent = currentMode === '20' ? '⚔️ 20인 4팀 모드' : '⚔️ 10인 2팀 모드';
+        modeBtn.className = `btn btn-mode-toggle ${currentMode === '20' ? 'mode-20' : 'mode-10'} ${isHost ? '' : 'hidden'}`;
+      }
+
+      // 대기 명단
       document.getElementById('waiting-players-grid').innerHTML =
         waiting.length
           ? waiting.map(p => buildPlayerCard(p, true)).join('')
           : '<p style="color:var(--text-dim);font-size:0.85rem;padding:8px">대기 인원이 없습니다.</p>';
       document.getElementById('waiting-count-lbl').textContent = waiting.length;
 
-      // 10명 정원에 도달했을 때 팀 배정 가능 여부 사전 검증
+      // 정원에 도달했을 때 팀 배정 가능 여부 사전 검증
       let canAssign = false;
       let invalidReason = '';
-      if (active.length === 10) {
-        const validation = validateForAssignment(active);
+      if (active.length === maxCount) {
+        const validation = validateForAssignment(active, currentMode);
         if (validation.valid) {
           canAssign = true;
         } else {
@@ -635,7 +682,7 @@
       }
 
       const cannotBtn = document.getElementById('cannot-assign-btn');
-      if (active.length === 10 && !canAssign) {
+      if (active.length === maxCount && !canAssign) {
         cannotBtn?.classList.remove('hidden');
         const reasonTextEl = document.getElementById('cannot-assign-reason-text');
         if (reasonTextEl) reasonTextEl.textContent = invalidReason;
@@ -657,7 +704,8 @@
     function renderResult() {
       const combo = currentCombos[comboIndex];
       if (!combo) return;
-      const balance = getBalanceLabel(combo.scoreDiff);
+      const is4TeamMode = !!(combo.green && combo.purple);
+      const balance = getBalanceLabel(combo.scoreDiff, is4TeamMode ? '20' : '10');
 
       // 밸런스 바
       const badge = document.getElementById('balance-badge');
@@ -666,17 +714,83 @@
         badge.className = `balance-badge ${balance.cls}`;
       }
       const scoreDiffEl = document.getElementById('score-diff-text');
-      if (scoreDiffEl) scoreDiffEl.textContent = `점수 차이: ${combo.scoreDiff}점`;
+      if (scoreDiffEl) {
+        if (is4TeamMode) {
+          const d1 = combo.diff1 !== undefined ? combo.diff1 : Math.abs(combo.blueScore - combo.redScore).toFixed(1);
+          const d2 = combo.diff2 !== undefined ? combo.diff2 : Math.abs(combo.greenScore - combo.purpleScore).toFixed(1);
+          scoreDiffEl.textContent = `🔵🔴 블루/레드: ${d1}점 차 | 🟢🟣 그린/퍼플: ${d2}점 차`;
+        } else {
+          scoreDiffEl.textContent = `점수 차이: ${combo.scoreDiff}점`;
+        }
+      }
 
-      // 팀 점수
-      const blueScoreEl = document.getElementById('blue-score-val');
-      if (blueScoreEl) blueScoreEl.textContent = `${combo.blueScore}점`;
-      const redScoreEl = document.getElementById('red-score-val');
-      if (redScoreEl) redScoreEl.textContent = `${combo.redScore}점`;
+      const container = document.getElementById('teams-container');
+      if (!container) return;
 
-      // 팀원 목록
-      renderTeam('blue-players', combo.blue, combo.lineMap, combo.isSubLine);
-      renderTeam('red-players', combo.red, combo.lineMap, combo.isSubLine);
+      if (combo.green && combo.purple) {
+        container.className = 'teams-container-4';
+        container.innerHTML = `
+        <div class="teams-pair-row">
+          <div class="team-panel blue-team">
+            <div class="team-header">
+              <span class="team-name">🔵 블루팀</span>
+              <span class="team-score-val">${combo.blueScore}점</span>
+            </div>
+            <div class="team-players" id="blue-players"></div>
+          </div>
+          <div class="vs-divider">VS</div>
+          <div class="team-panel red-team">
+            <div class="team-header">
+              <span class="team-name">🔴 레드팀</span>
+              <span class="team-score-val">${combo.redScore}점</span>
+            </div>
+            <div class="team-players" id="red-players"></div>
+          </div>
+        </div>
+        <div class="teams-pair-row">
+          <div class="team-panel green-team">
+            <div class="team-header">
+              <span class="team-name">🟢 그린팀</span>
+              <span class="team-score-val">${combo.greenScore}점</span>
+            </div>
+            <div class="team-players" id="green-players"></div>
+          </div>
+          <div class="vs-divider">VS</div>
+          <div class="team-panel purple-team">
+            <div class="team-header">
+              <span class="team-name">🟣 퍼플팀</span>
+              <span class="team-score-val">${combo.purpleScore}점</span>
+            </div>
+            <div class="team-players" id="purple-players"></div>
+          </div>
+        </div>`;
+
+        renderTeam('blue-players', combo.blue, combo.lineMap, combo.isSubLine);
+        renderTeam('red-players', combo.red, combo.lineMap, combo.isSubLine);
+        renderTeam('green-players', combo.green, combo.lineMap, combo.isSubLine);
+        renderTeam('purple-players', combo.purple, combo.lineMap, combo.isSubLine);
+      } else {
+        container.className = 'teams-container';
+        container.innerHTML = `
+        <div class="team-panel blue-team">
+          <div class="team-header">
+            <span class="team-name">🔵 블루팀</span>
+            <span class="team-score-val">${combo.blueScore}점</span>
+          </div>
+          <div class="team-players" id="blue-players"></div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="team-panel red-team">
+          <div class="team-header">
+            <span class="team-name">🔴 레드팀</span>
+            <span class="team-score-val">${combo.redScore}점</span>
+          </div>
+          <div class="team-players" id="red-players"></div>
+        </div>`;
+
+        renderTeam('blue-players', combo.blue, combo.lineMap, combo.isSubLine);
+        renderTeam('red-players', combo.red, combo.lineMap, combo.isSubLine);
+      }
 
       // 조합 네비
       const comboIdxEl = document.getElementById('combo-index-text');
@@ -734,7 +848,12 @@
             <img src="${getPlayerProfileIcon(p)}" alt="소환사 아이콘" class="profile-icon-img" onerror="this.src='${getProfileIconUrl(4020)}'">
           </div>
           <a href="https://www.op.gg/summoners/kr/${opgg}" target="_blank"
-             class="result-nickname-link">${safeNick}${badgeHTML}</a>
+             class="result-nickname-link opgg-link">
+            <span class="nick-text">${safeNick}</span>${badgeHTML}
+            <span class="opgg-tooltip-box">
+              <span class="opgg-brand">OP.GG</span> 전적 보기 <span class="opgg-arrow">↗</span>
+            </span>
+          </a>
         </div>
         <div class="result-tier-col">
           <img src="${TIER_ICONS[tier]}" alt="${tier}"
@@ -898,12 +1017,35 @@
         const newIdx = idx + dir;
         if (newIdx < 0 || newIdx >= ALL_TIERS.length) return;
         const newTier = ALL_TIERS[newIdx];
-        firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set(newTier);
+        firebase.database().ref(`rooms/${roomId}/players/${playerId}/adjustedTier`).set(newTier, err => handleFbError(err, '티어조정'));
         if (MASTER_TIERS.includes(newTier) && p.lp == null) {
-          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(0);
+          firebase.database().ref(`rooms/${roomId}/players/${playerId}/lp`).set(0, err => handleFbError(err, 'LP 설정'));
         }
         pushAdjustLog(`${tag} ${p.nickname}: ${cur} → ${newTier}`);
+        if (dir > 0) {
+          pushRoomNotification(`⬆️ [티어상향] ${p.nickname}: ${cur} ➔ ${newTier}`, 'success');
+        } else {
+          pushRoomNotification(`⬇️ [티어강등] ${p.nickname}: ${cur} ➔ ${newTier}`, 'error');
+        }
       }
+    }
+
+    // ─── 커스텀 확인 모달 ──────────────────────────────────────────
+    let confirmCallback = null;
+
+    function showConfirm(title, msg, okText, onConfirm) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-msg').textContent = msg;
+      const okBtn = document.getElementById('confirm-modal-ok-btn');
+      okBtn.textContent = okText || '확인';
+
+      confirmCallback = onConfirm;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+      confirmCallback = null;
     }
 
     // ─── 플레이어 기능: 퇴장 ────────────────────────────────────
@@ -911,30 +1053,48 @@
       if (!isHost && playerId !== myPlayerId) return;
       const p = playersMap[playerId];
       if (!p) return;
-      const msg = (playerId === myPlayerId) ? '정말 퇴장하시겠습니까?' : `${p.nickname}님을 퇴장시키겠습니까?`;
-      if (!confirm(msg)) return;
-      firebase.database().ref(`rooms/${roomId}/players/${playerId}`).remove();
-      if (myPlayerId === playerId) {
-        localStorage.removeItem(`playerId_${roomId}`);
-        myPlayerId = null;
-      }
+      const isMe = (playerId === myPlayerId);
+      const nick = p.nickname || '참가자';
+
+      const title = isMe ? '🚪 퇴장 확인' : '🚨 강퇴 확인';
+      const msg = isMe ? '정말 방에서 퇴장하시겠습니까?' : `${nick}님을 정말 강퇴하시겠습니까?`;
+      const btnText = isMe ? '퇴장하기' : '강퇴하기';
+
+      showConfirm(title, msg, btnText, async () => {
+        const notifMsg = isMe ? `🚪 [퇴장] ${nick}님이 방에서 퇴장하였습니다.` : `🚪 [강퇴] ${nick}님이 강퇴되었습니다.`;
+
+        try {
+          await firebase.database().ref(`rooms/${roomId}/players/${playerId}`).remove();
+          pushRoomNotification(notifMsg, 'error');
+
+          if (isMe) {
+            localStorage.removeItem(`playerId_${roomId}`);
+            myPlayerId = null;
+            showSection('join');
+          }
+        } catch (err) {
+          toast((isMe ? '퇴장' : '강퇴') + ' 실패: ' + err.message, 'error');
+        }
+      });
     }
 
     // ─── 플레이어 기능: 명단으로 투입 ────────────────────────────────────
     function promoteToActive(playerId) {
       if (!isHost && playerId !== myPlayerId) return;
+      const currentMode = roomMeta.mode || '10';
+      const maxCount = currentMode === '20' ? 20 : 10;
       const active = Object.values(playersMap).filter(p => p.status === 'active');
-      if (active.length >= 10) {
-        toast('현재 명단이 이미 10명입니다.', 'error');
+      if (active.length >= maxCount) {
+        toast(`현재 명단이 이미 ${maxCount}명입니다.`, 'error');
         return;
       }
-      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('active');
+      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('active', err => handleFbError(err, '명단 투입'));
     }
 
     // ─── 플레이어 기능: 대기로 이동 ──────────────────────────
     function moveToWaiting(playerId) {
       if (!isHost && playerId !== myPlayerId) return;
-      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('waiting');
+      firebase.database().ref(`rooms/${roomId}/players/${playerId}/status`).set('waiting', err => handleFbError(err, '대기 이동'));
     }
 
     // ─── 라인 변경 모달 로직 ─────────────────────────────────────────
@@ -997,7 +1157,10 @@
           pushAdjustLog(`[라인변경] ${p.nickname}: 부라인 변경 [lines:${newSubLines.join(',')}]`);
         }
 
-        toast(`${p.nickname}님의 라인이 변경되었습니다.`, 'success');
+        if (oldMain !== newMainLine || oldSubStr !== newSubStr) {
+          pushRoomNotification(`🔄 [라인변경] ${p.nickname}`, 'info');
+        }
+
         closeLineChangeModal();
       } catch (err) {
         toast('라인 변경 실패: ' + err.message, 'error');
@@ -1007,9 +1170,11 @@
     // ─── 팀 배정 실행 ────────────────────────────────────────────────
     function handleAssign() {
       const active = Object.values(playersMap).filter(p => p.status === 'active');
-      const result = runTeamAssignment(active);
+      const currentMode = roomMeta.mode || '10';
+      const result = runTeamAssignment(active, currentMode);
 
       if (!result.success) {
+        toast(result.reason || '팀 배정에 실패했습니다.', 'error');
         return;
       }
 
@@ -1017,15 +1182,18 @@
       try {
         const bestCombo = result.combinations[0];
         if (bestCombo) {
-          const balanceInfo = getBalanceLabel(bestCombo.scoreDiff);
+          const balanceInfo = getBalanceLabel(bestCombo.scoreDiff, currentMode);
           const hostPlayer = (myPlayerId && playersMap[myPlayerId]) ? playersMap[myPlayerId].nickname : '방장';
           const payload = {
             createdAt: firebase.database.ServerValue.TIMESTAMP,
             roomId: roomId,
+            mode: currentMode,
             hostNickname: hostPlayer,
             scoreDiff: bestCombo.scoreDiff,
             blueScore: bestCombo.blueScore,
             redScore: bestCombo.redScore,
+            greenScore: bestCombo.greenScore || null,
+            purpleScore: bestCombo.purpleScore || null,
             balanceLabel: balanceInfo.label,
             balanceClass: balanceInfo.cls,
             balanceEmoji: balanceInfo.emoji,
@@ -1054,7 +1222,33 @@
                 isSub: !!bestCombo.isSubLine[pid],
                 isAll: p.mainLine === 'all'
               };
-            }).filter(Boolean)
+            }).filter(Boolean),
+            greenTeam: bestCombo.green ? LINES_ORDER.map(line => {
+              const pid = bestCombo.green.find(id => bestCombo.lineMap[id] === line);
+              if (!pid || !playersMap[pid]) return null;
+              const p = playersMap[pid];
+              return {
+                id: pid,
+                nickname: p.nickname || '',
+                tier: getEffectiveTier(p),
+                line: line,
+                isSub: !!bestCombo.isSubLine[pid],
+                isAll: p.mainLine === 'all'
+              };
+            }).filter(Boolean) : null,
+            purpleTeam: bestCombo.purple ? LINES_ORDER.map(line => {
+              const pid = bestCombo.purple.find(id => bestCombo.lineMap[id] === line);
+              if (!pid || !playersMap[pid]) return null;
+              const p = playersMap[pid];
+              return {
+                id: pid,
+                nickname: p.nickname || '',
+                tier: getEffectiveTier(p),
+                line: line,
+                isSub: !!bestCombo.isSubLine[pid],
+                isAll: p.mainLine === 'all'
+              };
+            }).filter(Boolean) : null
           };
 
           firebase.database().ref('historySeq').transaction(current => (current || 0) + 1, (err, committed, snap) => {
@@ -1078,14 +1272,15 @@
     // ─── 결과 초기화 (방장) ──────────────────────────────────────────
     function resetResult() {
       if (!isHost) return;
-      firebase.database().ref(`rooms/${roomId}/result`).remove();
+      firebase.database().ref(`rooms/${roomId}/result`).remove(err => handleFbError(err, '결과 초기화'));
     }
 
     // ─── 결과 텍스트 복사 (카카오톡용) ──────────────────────────────
     function copyResultText() {
       const combo = currentCombos[comboIndex];
       if (!combo) return;
-      const balance = getBalanceLabel(combo.scoreDiff);
+      const is4TeamMode = !!(combo.green && combo.purple);
+      const balance = getBalanceLabel(combo.scoreDiff, is4TeamMode ? '20' : '10');
 
       let text = '🎮 내전 팀 배정 결과\n\n';
       text += '🔵 블루팀\n';
@@ -1113,7 +1308,40 @@
         }
       });
       text += `  총점: ${combo.redScore}점\n\n`;
-      text += `${balance.emoji} 밸런스: ${balance.label} (점수 차이: ${combo.scoreDiff}점)`;
+
+      if (is4TeamMode) {
+        text += '🟢 그린팀\n';
+        LINES_ORDER.forEach(line => {
+          const pid = combo.green.find(id => combo.lineMap[id] === line);
+          if (pid && playersMap[pid]) {
+            const p = playersMap[pid];
+            const isSub = combo.isSubLine[pid];
+            const isAll = (p.mainLine === 'all');
+            const badgeStr = isAll ? ' ✻' : (isSub ? ' (부)' : '');
+            text += `  [${LINE_NAMES[line]}] ${p.nickname}${badgeStr}\n`;
+          }
+        });
+        text += `  총점: ${combo.greenScore}점\n\n`;
+
+        text += '🟣 퍼플팀\n';
+        LINES_ORDER.forEach(line => {
+          const pid = combo.purple.find(id => combo.lineMap[id] === line);
+          if (pid && playersMap[pid]) {
+            const p = playersMap[pid];
+            const isSub = combo.isSubLine[pid];
+            const isAll = (p.mainLine === 'all');
+            const badgeStr = isAll ? ' ✻' : (isSub ? ' (부)' : '');
+            text += `  [${LINE_NAMES[line]}] ${p.nickname}${badgeStr}\n`;
+          }
+        });
+        text += `  총점: ${combo.purpleScore}점\n\n`;
+
+        const d1 = combo.diff1 !== undefined ? combo.diff1 : Math.abs(combo.blueScore - combo.redScore).toFixed(1);
+        const d2 = combo.diff2 !== undefined ? combo.diff2 : Math.abs(combo.greenScore - combo.purpleScore).toFixed(1);
+        text += `${balance.emoji} 밸런스: ${balance.label} (🔵🔴 블루/레드: ${d1}점 차 | 🟢🟣 그린/퍼플: ${d2}점 차)`;
+      } else {
+        text += `${balance.emoji} 밸런스: ${balance.label} (점수 차이: ${combo.scoreDiff}점)`;
+      }
 
       navigator.clipboard.writeText(text)
         .then(() => toast('클립보드에 복사됐습니다!', 'success'))
@@ -1137,6 +1365,117 @@
         .catch(() => toast('복사 실패', 'error'));
     }
 
+    // ─── 알고리즘 팝오버 동적 렌더링 ────────────────────────────────
+    function renderAlgoPopover() {
+      const mode = roomMeta.mode || '10';
+      const is20 = mode === '20';
+      const body = document.getElementById('algo-popover-body');
+      if (!body) return;
+
+      if (is20) {
+        body.innerHTML = `
+          <div class="algo-section-head">📌 STEP 0. 사전 검증</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">팀 배정 가능 여부 확인</strong>
+              <div class="algo-item-desc">
+                • 현재 명단이 20명인지 확인<br>
+                • 각 라인별 배정 가능 인원(주/부/상관없음)이 4명 이상인지 검증<br>
+                • 5개 라인을 모두 채우는 조합이 1개 이상 존재하는지 사전 검증
+              </div>
+            </div>
+          </div>
+
+          <div class="algo-section-head" style="margin-top:14px;">📌 STEP 1. 라인 배정 (백트래킹)</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">1-1. 희망 라인 & 부라인 탐색</strong>
+              <div class="algo-item-desc">
+                • 방에 들어온 선착순으로 <span class="text-gold">희망라인 → 부라인</span> 순서 배치 (각 라인당 4명)
+              </div>
+            </div>
+
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">1-2. 가지치기</strong>
+              <div class="algo-item-desc">
+                • 남은 인원으로 남은 라인을 채울 수 없는 탐색 경로는 즉시 중단<br>
+                • 유효한 라인 배정 조합 수집 (최대 5개)
+              </div>
+            </div>
+          </div>
+
+          <div class="algo-section-head" style="margin-top:14px;">📌 STEP 2. 팀 나누기 & 밸런스 최적화</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">2-1. 4개 팀 분할 전수 계산</strong>
+              <div class="algo-item-desc">
+                • 라인 배정 조합 × 4개 팀 순열 분할(24<sup>4</sup> = 331,776가지) = <span class="text-gold">최대 165만 가지</span> 대진 초고속 탐색<br>
+              </div>
+            </div>
+
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">2-2. 최적 조합 선별 & 지표</strong>
+              <div class="algo-item-desc">
+                • <strong> |블루-레드|</strong> 및 <strong>|그린-퍼플|</strong> 두 매치 모두 최적 밸런스 탐색<br>
+                • 상위 황밸 조합 10개 저장<br>
+                • 🟡 황밸 (총 격차 ≤10점) / 🟢 밸런스 양호 (≤30점) / 🔴 언밸 (>30점)
+              </div>
+            </div>
+          </div>`;
+      } else {
+        body.innerHTML = `
+          <div class="algo-section-head">📌 STEP 0. 사전 검증</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">팀 배정 가능 여부 확인</strong>
+              <div class="algo-item-desc">
+                • 현재 명단이 10명인지 확인<br>
+                • 각 라인별 배정 가능 인원(주/부/상관없음)이 2명 이상인지 검증<br>
+                • 5개 라인을 모두 채우는 조합이 1개 이상 존재하는지 사전 검증
+              </div>
+            </div>
+          </div>
+
+          <div class="algo-section-head" style="margin-top:14px;">📌 STEP 1. 라인 배정 (백트래킹)</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">1-1. 희망 라인 & 부라인 탐색</strong>
+              <div class="algo-item-desc">
+                • 방에 들어온 선착순으로 <span class="text-gold">희망라인 → 부라인</span> 순서 배치 (각 라인당 2명)
+              </div>
+            </div>
+
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">1-2. 가지치기</strong>
+              <div class="algo-item-desc">
+                • 남은 인원으로 남은 라인을 채울 수 없는 탐색 경로는 즉시 중단<br>
+                • 유효한 라인 배정 조합 수집 (최대 30개)
+              </div>
+            </div>
+          </div>
+
+          <div class="algo-section-head" style="margin-top:14px;">📌 STEP 2. 팀 나누기 & 밸런스 최적화</div>
+          <div class="algo-simple-group">
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">2-1. 진영 조합 계산</strong>
+              <div class="algo-item-desc">
+                • 라인 배정 조합(최대 30개) × 라인별 블루/레드 분할(32가지) = <span class="text-gold">최대 960가지</span> 조합 전수 계산<br>
+                • 티어 기반 라인 점수 합산 후 팀 총점 비교
+              </div>
+            </div>
+
+            <div class="algo-simple-item">
+              <strong class="algo-item-title">2-2. 최적 조합 선별 & 지표</strong>
+              <div class="algo-item-desc">
+                • <strong>|블루팀 총점 - 레드팀 총점|</strong> 최소 순 정렬<br>
+                • 진영 스왑 중복 제거 후 <strong>상위 10개 조합</strong> 저장<br>
+                • 🟡 황밸 (≤5점) / 🟢 밸런스 양호 (≤15점) / 🔴 언밸 (>15점)
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+
     // ─── Firebase 실시간 리스너 ──────────────────────────────────────
     function onRoomUpdate(snapshot) {
       try {
@@ -1155,10 +1494,13 @@
           if (pdata) playersMap[pid] = { id: pid, ...pdata };
         }
 
-        // 실시간 조정 이력 업데이트 (최신순)
+        // 실시간 조정 이력 업데이트 (최신순, 모드변경 로그 제외)
         try {
-          adjustLogList = Object.values(logs).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+          adjustLogList = Object.values(logs)
+            .filter(item => item && item.text && !item.text.startsWith('[모드변경]'))
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
           renderAdjustLogPopover();
+          renderAlgoPopover();
         } catch (e) {
           console.error('Error rendering adjust log popover:', e);
         }
@@ -1195,6 +1537,11 @@
             console.error('Error rendering lobby:', e);
           }
         } else {
+          if (myPlayerId && !playersMap[myPlayerId]) {
+            localStorage.removeItem(`playerId_${roomId}`);
+            myPlayerId = null;
+            toast('방에서 퇴장(강퇴)되었습니다.', 'error');
+          }
           showSection('join');
         }
       } catch (err) {
@@ -1418,8 +1765,10 @@
       if (!nickname) { toast('닉네임을 입력해주세요.', 'error'); return; }
       if (!mainLine) { toast('희망 라인을 선택해주세요.', 'error'); return; }
 
+      const currentMode = roomMeta.mode || '10';
+      const maxCount = currentMode === '20' ? 20 : 10;
       const active = Object.values(playersMap).filter(p => p.status === 'active');
-      const status = active.length < 10 ? 'active' : 'waiting';
+      const status = active.length < maxCount ? 'active' : 'waiting';
 
       const profileIcon = getRandomUnusedIconId();
 
@@ -1532,8 +1881,10 @@
       if (!nickname) { toast('닉네임을 입력해주세요.', 'error'); return; }
       if (!mainLine) { toast('희망 라인을 선택해주세요.', 'error'); return; }
 
+      const currentMode = roomMeta.mode || '10';
+      const maxCount = currentMode === '20' ? 20 : 10;
       const active = Object.values(playersMap).filter(p => p.status === 'active');
-      const status = (forceWaiting || active.length >= 10) ? 'waiting' : 'active';
+      const status = (forceWaiting || active.length >= maxCount) ? 'waiting' : 'active';
       const profileIcon = getRandomUnusedIconId();
 
       try {
@@ -1556,21 +1907,20 @@
     }
 
     // ─── 방 폭파 (방장 전용) ─────────────────────────────────────────
-    async function handleDestroyRoom() {
+    function handleDestroyRoom() {
       if (!isHost) return;
-      if (!confirm('💣 정말로 이 방을 폭파하시겠습니까?\n방의 모든 참가자 정보와 데이터가 삭제되며 복구할 수 없습니다.')) {
-        return;
-      }
-      try {
-        localStorage.removeItem(`hostToken_${roomId}`);
-        await firebase.database().ref(`rooms/${roomId}`).remove();
-        toast('방이 폭파되었습니다.', 'info');
-        setTimeout(() => {
-          location.href = 'index.html';
-        }, 500);
-      } catch (err) {
-        toast('방 폭파 실패: ' + err.message, 'error');
-      }
+      showConfirm('💣 방 폭파 확인', '정말로 이 방을 폭파하시겠습니까?\n방의 모든 참가자 정보와 데이터가 삭제되며 복구할 수 없습니다.', '방 폭파', async () => {
+        try {
+          localStorage.removeItem(`hostToken_${roomId}`);
+          await firebase.database().ref(`rooms/${roomId}`).remove();
+          toast('방이 폭파되었습니다.', 'info');
+          setTimeout(() => {
+            location.href = 'index.html';
+          }, 500);
+        } catch (err) {
+          toast('방 폭파 실패: ' + err.message, 'error');
+        }
+      });
     }
 
     // ─── 이벤트 등록 ─────────────────────────────────────────────────
@@ -1630,6 +1980,18 @@
       });
       document.getElementById('line-change-form')?.addEventListener('submit', handleLineChangeSubmit);
 
+      // 커스텀 확인 모달 이벤트
+      document.getElementById('confirm-modal-close')?.addEventListener('click', closeConfirmModal);
+      document.getElementById('confirm-modal-cancel-btn')?.addEventListener('click', closeConfirmModal);
+      document.getElementById('confirm-modal-ok-btn')?.addEventListener('click', () => {
+        const cb = confirmCallback;
+        closeConfirmModal();
+        if (cb) cb();
+      });
+      document.getElementById('confirm-modal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeConfirmModal();
+      });
+
       // 플레이어 추가 모달
       document.getElementById('add-player-btn')?.addEventListener('click', () => {
         document.getElementById('add-player-modal').classList.remove('hidden');
@@ -1646,6 +2008,49 @@
       });
       document.getElementById('add-as-waiting-btn')?.addEventListener('click', () => {
         submitAddPlayer(true);
+      });
+
+      // 모드 토글 (방장 전용)
+      document.getElementById('mode-toggle-btn')?.addEventListener('click', async () => {
+        if (!isHost) {
+          toast('방장만 모드를 변경할 수 있습니다.', 'info');
+          return;
+        }
+        const currentMode = roomMeta.mode || '10';
+        const newMode = currentMode === '20' ? '10' : '20';
+
+        const all = Object.values(playersMap).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        const active = all.filter(p => p.status === 'active');
+        const waiting = all.filter(p => p.status === 'waiting');
+
+        const updates = {};
+        updates[`rooms/${roomId}/meta/mode`] = newMode;
+
+        if (newMode === '20') {
+          // 10인 -> 20인 변경 시: 대기자에 있던 인원 자동 투입 (최대 20명까지)
+          const availableSlots = 20 - active.length;
+          if (availableSlots > 0 && waiting.length > 0) {
+            const toPromote = waiting.slice(0, availableSlots);
+            toPromote.forEach(p => {
+              updates[`rooms/${roomId}/players/${p.id}/status`] = 'active';
+            });
+          }
+        } else {
+          // 20인 -> 10인 변경 시: 10명 초과 인원은 자동으로 대기 명단으로 이동
+          if (active.length > 10) {
+            const toDemote = active.slice(10);
+            toDemote.forEach(p => {
+              updates[`rooms/${roomId}/players/${p.id}/status`] = 'waiting';
+            });
+          }
+        }
+
+        try {
+          await firebase.database().ref().update(updates);
+          toast(`모드가 ${newMode === '20' ? '20인 4팀' : '10인 2팀'}으로 변경되었습니다.`, 'success');
+        } catch (err) {
+          toast('모드 변경 실패: ' + err.message, 'error');
+        }
       });
 
       // 팝오버 토글 (알고리즘, 점수, 조정 이력)

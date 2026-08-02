@@ -36,7 +36,7 @@
 
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.4">
+  <link rel="stylesheet" href="css/style.css?v=1.6">
 </head>
 
 <body class="landing-page">
@@ -139,11 +139,20 @@
       btn.disabled = true;
       btn.textContent = '방 생성 중...';
 
-      const roomId = generateRoomId();
+      let roomId = generateRoomId();
       const hostToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
 
       try {
-        const roomRef = firebase.database().ref(`rooms/${roomId}`);
+        let roomRef = firebase.database().ref(`rooms/${roomId}`);
+        let attempts = 0;
+        while (attempts < 5) {
+          const snap = await roomRef.child('meta').once('value');
+          if (!snap.exists()) break;
+          roomId = generateRoomId();
+          roomRef = firebase.database().ref(`rooms/${roomId}`);
+          attempts++;
+        }
+
         await roomRef.set({
           meta: {
             createdAt: firebase.database.ServerValue.TIMESTAMP,

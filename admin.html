@@ -9,7 +9,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-EEHB82GY49"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-EEHB82GY49');
   </script>
@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.4">
+  <link rel="stylesheet" href="css/style.css?v=2.0">
   <style>
     .admin-container {
       max-width: 1000px;
@@ -205,8 +205,21 @@
       gap: 16px;
     }
 
+    .teams-container-4 {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .teams-pair-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
     @media (max-width: 768px) {
-      .teams-grid {
+      .teams-grid,
+      .teams-pair-row {
         grid-template-columns: 1fr;
       }
 
@@ -244,6 +257,22 @@
 
     .team-box.red .team-title {
       color: #ff6b81;
+    }
+
+    .team-box.green {
+      border-left: 4px solid #10b981;
+    }
+
+    .team-box.purple {
+      border-left: 4px solid #a855f7;
+    }
+
+    .team-box.green .team-title {
+      color: #34d399;
+    }
+
+    .team-box.purple .team-title {
+      color: #c084fc;
     }
 
     .player-row {
@@ -556,7 +585,9 @@
           const matchHost = item.hostNickname && item.hostNickname.toLowerCase().includes(query);
           const matchBlue = item.blueTeam && item.blueTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
           const matchRed = item.redTeam && item.redTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
-          return matchRoom || matchHost || matchBlue || matchRed;
+          const matchGreen = item.greenTeam && item.greenTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
+          const matchPurple = item.purpleTeam && item.purpleTeam.some(p => p.nickname && p.nickname.toLowerCase().includes(query));
+          return matchRoom || matchHost || matchBlue || matchRed || matchGreen || matchPurple;
         });
       }
 
@@ -568,11 +599,16 @@
       }
 
       const cardsHtml = filtered.map((item, index) => {
+        const renderNickLink = (p) => {
+          const opgg = encodeURIComponent((p.nickname || '').replace('#', '-'));
+          return `<a href="https://www.op.gg/summoners/kr/${opgg}" target="_blank" class="opgg-link" style="color:inherit;text-decoration:none"><strong><span class="nick-text">${escapeHtml(p.nickname)}</span></strong><span class="opgg-tooltip-box"><span class="opgg-brand">OP.GG</span> 전적 보기 <span class="opgg-arrow">↗</span></span></a>`;
+        };
+
         const bluePlayers = (item.blueTeam || []).map(p => `
           <div class="player-row">
             <div class="player-left">
               <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
-              <strong>${escapeHtml(p.nickname)}</strong>
+              ${renderNickLink(p)}
               ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
             </div>
             <span class="tier-name">${p.tier || ''}</span>
@@ -583,17 +619,119 @@
           <div class="player-row">
             <div class="player-left">
               <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
-              <strong>${escapeHtml(p.nickname)}</strong>
+              ${renderNickLink(p)}
               ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
             </div>
             <span class="tier-name">${p.tier || ''}</span>
           </div>
         `).join('');
 
-        const scoreDiffText = item.scoreDiff !== undefined ? `${item.scoreDiff.toFixed(1)}점 차` : '';
+        let greenBoxHtml = '';
+        if (item.greenTeam) {
+          const greenPlayers = item.greenTeam.map(p => `
+            <div class="player-row">
+              <div class="player-left">
+                <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
+                ${renderNickLink(p)}
+                ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
+              </div>
+              <span class="tier-name">${p.tier || ''}</span>
+            </div>
+          `).join('');
+          greenBoxHtml = `
+            <div class="team-box green">
+              <div class="team-title">
+                <span>🟢 그린팀</span>
+                <span>총점: ${(item.greenScore || 0).toFixed(1)}점</span>
+              </div>
+              ${greenPlayers}
+            </div>`;
+        }
+
+        let purpleBoxHtml = '';
+        if (item.purpleTeam) {
+          const purplePlayers = item.purpleTeam.map(p => `
+            <div class="player-row">
+              <div class="player-left">
+                <span class="line-badge">${LINE_NAMES[p.line] || p.line}</span>
+                ${renderNickLink(p)}
+                ${p.isAll ? '<span class="all-badge">✻</span>' : (p.isSub ? '<span class="sub-badge">부</span>' : '')}
+              </div>
+              <span class="tier-name">${p.tier || ''}</span>
+            </div>
+          `).join('');
+          purpleBoxHtml = `
+            <div class="team-box purple">
+              <div class="team-title">
+                <span>🟣 퍼플팀</span>
+                <span>총점: ${(item.purpleScore || 0).toFixed(1)}점</span>
+              </div>
+              ${purplePlayers}
+            </div>`;
+        }
+
+        const is4Team = item.mode === '20' || (item.greenTeam && item.purpleTeam);
+        const modeBadgeHtml = is4Team
+          ? '<span style="background:linear-gradient(135deg,#8e44ad,#27ae60);color:#fff;font-size:0.72rem;padding:2px 7px;border-radius:4px;font-weight:700;">⚔️ 20인 4팀</span>'
+          : '<span style="background:rgba(14,165,233,0.15);border:1px solid rgba(14,165,233,0.4);color:#38bdf8;font-size:0.72rem;padding:2px 7px;border-radius:4px;font-weight:700;">⚔️ 10인 2팀</span>';
+
+        let scoreDiffText = '';
+        if (is4Team) {
+          const d1 = item.diff1 !== undefined ? item.diff1.toFixed(1) : Math.abs((item.blueScore || 0) - (item.redScore || 0)).toFixed(1);
+          const d2 = item.diff2 !== undefined ? item.diff2.toFixed(1) : Math.abs((item.greenScore || 0) - (item.purpleScore || 0)).toFixed(1);
+          scoreDiffText = `🔵🔴 ${d1}점 차 | 🟢🟣 ${d2}점 차`;
+        } else {
+          scoreDiffText = item.scoreDiff !== undefined ? `점수 차이: ${item.scoreDiff.toFixed(1)}점` : '';
+        }
+
         const hostName = item.hostNickname || '방장';
         const openClass = isAllOpen ? ' open' : '';
         const numDisplay = item.historyNo ? `${item.historyNo}.` : `#${filtered.length - index}`;
+
+        let detailTeamsHtml = '';
+        if (is4Team) {
+          detailTeamsHtml = `
+            <div class="teams-container-4">
+              <div class="teams-pair-row">
+                <div class="team-box blue">
+                  <div class="team-title">
+                    <span>🔵 블루팀</span>
+                    <span>총점: ${(item.blueScore || 0).toFixed(1)}점</span>
+                  </div>
+                  ${bluePlayers}
+                </div>
+                <div class="team-box red">
+                  <div class="team-title">
+                    <span>🔴 레드팀</span>
+                    <span>총점: ${(item.redScore || 0).toFixed(1)}점</span>
+                  </div>
+                  ${redPlayers}
+                </div>
+              </div>
+              <div class="teams-pair-row">
+                ${greenBoxHtml}
+                ${purpleBoxHtml}
+              </div>
+            </div>`;
+        } else {
+          detailTeamsHtml = `
+            <div class="teams-grid">
+              <div class="team-box blue">
+                <div class="team-title">
+                  <span>🔵 블루팀</span>
+                  <span>총점: ${(item.blueScore || 0).toFixed(1)}점</span>
+                </div>
+                ${bluePlayers}
+              </div>
+              <div class="team-box red">
+                <div class="team-title">
+                  <span>🔴 레드팀</span>
+                  <span>총점: ${(item.redScore || 0).toFixed(1)}점</span>
+                </div>
+                ${redPlayers}
+              </div>
+            </div>`;
+        }
 
         return `
           <div class="history-card${openClass}" id="card-${item.id}">
@@ -602,6 +740,7 @@
               <div class="header-left-summary">
                 <span class="toggle-icon">▶</span>
                 <span class="history-no-badge">${numDisplay}</span>
+                ${modeBadgeHtml}
                 <span class="history-time">${formatDate(item.createdAt)}</span>
                 <span class="host-badge">👑 ${escapeHtml(hostName)}</span>
                 <span class="room-badge">#${item.roomId || 'UNKNOWN'}</span>
@@ -616,23 +755,7 @@
 
             <!-- 상세 내용 (토글 영역) -->
             <div class="history-body">
-              <div class="teams-grid">
-                <div class="team-box blue">
-                  <div class="team-title">
-                    <span>🔵 블루팀</span>
-                    <span>총점: ${(item.blueScore || 0).toFixed(1)}점</span>
-                  </div>
-                  ${bluePlayers}
-                </div>
-
-                <div class="team-box red">
-                  <div class="team-title">
-                    <span>🔴 레드팀</span>
-                    <span>총점: ${(item.redScore || 0).toFixed(1)}점</span>
-                  </div>
-                  ${redPlayers}
-                </div>
-              </div>
+              ${detailTeamsHtml}
             </div>
           </div>
         `;
