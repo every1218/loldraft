@@ -1163,14 +1163,17 @@
         const notifMsg = isMe ? `🚪 [퇴장] ${nick}님이 방에서 퇴장하였습니다.` : `🚪 [강퇴] ${nick}님이 강퇴되었습니다.`;
 
         try {
-          await firebase.database().ref(`rooms/${roomId}/players/${playerId}`).remove();
-          pushRoomNotification(notifMsg, 'error');
-
           if (isMe) {
             localStorage.removeItem(`playerId_${roomId}`);
-            myPlayerId = null;
+            const tempMyId = myPlayerId;
+            myPlayerId = null; // onRoomUpdate 중복 강퇴 팝업 방지
             showSection('join');
+            toast('방에서 퇴장하였습니다.', 'info');
+            await firebase.database().ref(`rooms/${roomId}/players/${tempMyId}`).remove();
+          } else {
+            await firebase.database().ref(`rooms/${roomId}/players/${playerId}`).remove();
           }
+          pushRoomNotification(notifMsg, 'error');
         } catch (err) {
           toast((isMe ? '퇴장' : '강퇴') + ' 실패: ' + err.message, 'error');
         }
@@ -1639,7 +1642,7 @@
           if (myPlayerId && !playersMap[myPlayerId]) {
             localStorage.removeItem(`playerId_${roomId}`);
             myPlayerId = null;
-            toast('방에서 퇴장(강퇴)되었습니다.', 'error');
+            toast('방장에 의해 강퇴되었습니다.', 'error');
           }
           showSection('join');
         }
