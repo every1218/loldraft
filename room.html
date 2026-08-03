@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.7">
+  <link rel="stylesheet" href="css/style.css?v=1.9">
 </head>
 
 <body>
@@ -532,7 +532,7 @@
     function toast(msg, type = 'info') {
       const el = document.createElement('div');
       el.className = `toast toast-${type}`;
-      el.textContent = msg;
+      el.innerHTML = msg;
       document.getElementById('toast-container').appendChild(el);
       setTimeout(() => el.remove(), 3000);
     }
@@ -784,7 +784,7 @@
       if (active.length === maxCount && !canAssign) {
         cannotBtn?.classList.remove('hidden');
         const reasonTextEl = document.getElementById('cannot-assign-reason-text');
-        if (reasonTextEl) reasonTextEl.textContent = invalidReason;
+        if (reasonTextEl) reasonTextEl.innerHTML = invalidReason;
       } else {
         cannotBtn?.classList.add('hidden');
         document.getElementById('cannot-assign-popover')?.classList.add('hidden');
@@ -1520,7 +1520,7 @@
               <div class="algo-item-desc">
                 • <strong> |블루-레드|</strong> 및 <strong>|그린-퍼플|</strong> 두 매치 모두 최적 밸런스 탐색<br>
                 • 상위 황밸 조합 10개 저장<br>
-                • 🟡 황밸 (총 격차 ≤10점) / 🟢 밸런스 양호 (≤30점) / 🔴 언밸 (>30점)
+                • 🟡 황밸 (≤5점) / 🟢 밸런스 양호 (≤15점) / 🔴 언밸 (>15점)
               </div>
             </div>
           </div>`;

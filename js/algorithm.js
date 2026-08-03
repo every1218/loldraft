@@ -31,7 +31,7 @@ function validateForAssignment(activePlayers, mode = '10') {
     if (eligible.length < reqPerLine) {
       return {
         valid: false,
-        reason: `[${LINE_NAMES[line]}] 라인에 배정 가능한 인원이 ${reqPerLine}명 미만입니다. 부라인을 추가하거나 대기자와 교체해주세요.`
+        reason: `<span class="cannot-assign-line-name">${LINE_NAMES[line]}</span> 라인에 배정 가능한 인원이 ${reqPerLine}명 미만입니다. 부라인을 추가하거나 대기자와 교체해주세요.`
       };
     }
   }
