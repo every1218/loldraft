@@ -184,10 +184,13 @@ function getEffectiveTier(player) {
 
 /**
  * 플레이어 티어 표시 문자열 (마스터+ LP 포함)
+ * @param {object} player - 플레이어 객체
+ * @param {boolean} shortFormat - true일 경우 '그랜드마스터'를 '그마'로 축약 (카드 표시용)
  */
-function getTierLabel(player) {
-  const tier = getEffectiveTier(player);
-  if (MASTER_TIERS.includes(tier) && player.lp != null) {
+function getTierLabel(player, shortFormat = false) {
+  const rawTier = getEffectiveTier(player);
+  const tier = (shortFormat && rawTier === '그랜드마스터') ? '그마' : rawTier;
+  if (MASTER_TIERS.includes(rawTier) && player.lp != null) {
     return `${tier} ${player.lp}LP`;
   }
   return tier;

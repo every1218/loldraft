@@ -597,7 +597,7 @@
       const adjusted = player.adjustedTier && player.adjustedTier !== player.tier;
       const safeNick = escapeHtml(player.nickname || '');
       const opggNick = encodeURIComponent((player.nickname || '').replace('#', '-'));
-      const tierLabel = getTierLabel(player);
+      const tierLabel = getTierLabel(player, true);
       const profileIconUrl = getPlayerProfileIcon(player);
 
       const hostBadgeHTML = isHostPlayer ? '<span class="host-badge-card">방장</span>' : '';
