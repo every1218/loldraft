@@ -124,6 +124,44 @@
       return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
     }
 
+    // ─── 만료된 방 자동 청소 ─────────────────────────────────────────
+    async function cleanupExpiredRooms() {
+      try {
+        if (typeof firebase === 'undefined' || typeof firebaseConfig === 'undefined') return;
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+        const roomsRef = firebase.database().ref('rooms');
+        const snap = await roomsRef.once('value');
+        if (!snap.exists()) return;
+
+        const now = Date.now();
+        const updates = {};
+        let count = 0;
+
+        snap.forEach(childSnap => {
+          const roomData = childSnap.val();
+          const meta = (roomData && roomData.meta) || {};
+          if (meta.expiresAt && now > meta.expiresAt) {
+            updates[childSnap.key] = null;
+            count++;
+          }
+        });
+
+        if (count > 0) {
+          await roomsRef.update(updates);
+          console.log(`🧹 만료된 방 데이터 ${count}개 자동 청소 완료`);
+        }
+      } catch (e) {
+        console.warn('만료 방 청소 로직 스킵:', e);
+      }
+    }
+
+    // 페이지 로드 시 비동기 청소 실행
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(cleanupExpiredRooms, 1000);
+    });
+
     document.getElementById('create-room-btn').addEventListener('click', async () => {
       // Firebase 초기화 확인
       try {

@@ -1578,40 +1578,9 @@
       }
     }
 
-    // ─── Firebase 실시간 리스너 ──────────────────────────────────────
-    function onRoomUpdate(snapshot) {
+    // ─── Firebase 실시간 상태 렌더링 ──────────────────────────────────
+    function renderCurrentState() {
       try {
-        if (!snapshot || !snapshot.exists()) {
-          showError('방이 존재하지 않거나 삭제되었습니다.');
-          return;
-        }
-
-        const data = snapshot.val() || {};
-        roomMeta = data.meta || {};
-        const players = data.players || {};
-        const logs = data.logs || {};
-
-        playersMap = {};
-        for (const [pid, pdata] of Object.entries(players)) {
-          if (pdata) playersMap[pid] = { id: pid, ...pdata };
-        }
-
-        // 실시간 조정 이력 업데이트 (최신순, 모드변경 로그 제외)
-        try {
-          adjustLogList = Object.values(logs)
-            .filter(item => item && item.text && !item.text.startsWith('[모드변경]'))
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-          renderAdjustLogPopover();
-          renderAlgoPopover();
-        } catch (e) {
-          console.error('Error rendering adjust log popover:', e);
-        }
-
-        // 방장이 본인 ID를 DB에 등록하여 모두가 방장을 식별할 수 있게 함
-        if (isHost && myPlayerId && (!roomMeta.hostPlayerId || roomMeta.hostPlayerId !== myPlayerId)) {
-          firebase.database().ref(`rooms/${roomId}/meta/hostPlayerId`).set(myPlayerId);
-        }
-
         try {
           updateHeader();
         } catch (e) {
@@ -1619,8 +1588,7 @@
         }
 
         // 결과 있으면 결과 화면
-        if (data.result && data.result.combinations && data.result.combinations.length > 0) {
-          currentCombos = data.result.combinations;
+        if (currentCombos && currentCombos.length > 0) {
           showSection('result');
           try {
             renderResult();
@@ -1647,8 +1615,8 @@
           showSection('join');
         }
       } catch (err) {
-        console.error('Critical onRoomUpdate Error:', err);
-        showError('방 정보를 불러오는 중 오류가 발생했습니다: ' + err.message);
+        console.error('Critical renderCurrentState Error:', err);
+        showError('방 정보를 화면에 표시하는 중 오류가 발생했습니다: ' + err.message);
       }
     }
 
@@ -1934,8 +1902,13 @@
 
       let wasRoomActive = false;
       const roomRef = firebase.database().ref(`rooms/${roomId}`);
+      const metaRef = roomRef.child('meta');
+      const playersRef = roomRef.child('players');
+      const resultRef = roomRef.child('result');
+      const logsRef = roomRef.child('logs');
 
-      roomRef.on('value', snap => {
+      // 1) 메타 정보 구독 (방장 식별 및 만료 체크)
+      metaRef.on('value', snap => {
         loaded = true;
         clearTimeout(timeoutId);
         try {
@@ -1949,30 +1922,69 @@
           }
           wasRoomActive = true;
 
-          const meta = snap.val().meta || {};
+          roomMeta = snap.val() || {};
 
           // 방 만료 확인
-          if (meta.expiresAt && Date.now() > meta.expiresAt) {
+          if (roomMeta.expiresAt && Date.now() > roomMeta.expiresAt) {
             roomRef.remove();
             showError('만료된 방입니다.');
             return;
           }
 
           // 방장 여부 확인
-          if (storedToken && meta.hostToken === storedToken) {
+          if (storedToken && roomMeta.hostToken === storedToken) {
             isHost = true;
           }
 
-          onRoomUpdate(snap);
+          // 방장이 본인 ID를 DB에 등록
+          if (isHost && myPlayerId && (!roomMeta.hostPlayerId || roomMeta.hostPlayerId !== myPlayerId)) {
+            metaRef.child('hostPlayerId').set(myPlayerId);
+          }
+
+          renderCurrentState();
         } catch (err) {
           console.error(err);
-          showError('방 데이터 처리 오류: ' + err.message);
+          showError('방 정보 처리 오류: ' + err.message);
         }
       }, err => {
         loaded = true;
         clearTimeout(timeoutId);
         console.error(err);
         showError('Firebase 연결 오류: ' + err.message + '\n\nfirebase-config.js 설정을 확인해주세요.');
+      });
+
+      // 2) 참가자 목록 구독
+      playersRef.on('value', snap => {
+        const players = snap.val() || {};
+        playersMap = {};
+        for (const [pid, pdata] of Object.entries(players)) {
+          if (pdata) playersMap[pid] = { id: pid, ...pdata };
+        }
+        renderCurrentState();
+      });
+
+      // 3) 결과 정보 구독
+      resultRef.on('value', snap => {
+        const resultVal = snap.val();
+        if (resultVal && resultVal.combinations && resultVal.combinations.length > 0) {
+          currentCombos = resultVal.combinations;
+        } else {
+          currentCombos = null;
+        }
+        renderCurrentState();
+      });
+
+      // 4) 조정 이력 로그 전용 분리 구독 (새 로그 1개가 추가될 때만 0.1KB 단위 단독 수신하여 트래픽 폭증 방지)
+      logsRef.on('child_added', snap => {
+        const item = snap.val();
+        if (item && item.text && !item.text.startsWith('[모드변경]')) {
+          if (!adjustLogList.some(l => l.timestamp === item.timestamp && l.text === item.text)) {
+            adjustLogList.unshift(item);
+            adjustLogList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            renderAdjustLogPopover();
+            renderAlgoPopover();
+          }
+        }
       });
     }
 
