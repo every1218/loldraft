@@ -1584,6 +1584,102 @@ textarea {
   flex-wrap: wrap;
 }
 
+/* ─── 유튜브 비디오 섹션 ────────────────────────────────────────── */
+.youtube-section {
+  margin-top: 28px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.youtube-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 960px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .youtube-grid {
+    grid-template-columns: 1fr;
+    max-width: 360px;
+  }
+}
+
+.youtube-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.youtube-card:hover {
+  border-color: var(--border-bright);
+  box-shadow: 0 6px 20px rgba(200, 155, 60, 0.25);
+  transform: translateY(-2px);
+}
+
+.youtube-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.youtube-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  filter: brightness(1);
+}
+
+.youtube-card:hover .youtube-thumb {
+  transform: scale(1.03);
+  filter: brightness(1.08);
+}
+
+.youtube-play-btn {
+  position: absolute;
+  width: 48px;
+  height: 34px;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.9;
+}
+
+.youtube-card:hover .youtube-play-btn {
+  transform: scale(1.15);
+  opacity: 1;
+}
+
+.youtube-play-btn svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+}
+
+.youtube-card iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    TOASTS / ALERTS
 ═══════════════════════════════════════════════════════════════ */

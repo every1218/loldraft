@@ -18,7 +18,7 @@
   <meta name="naver-site-verification" content="8bf8d37775c8298396ca0c2600f1ae059d2cc536" />
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=1.9">
+  <link rel="stylesheet" href="css/style.css?v=2.0">
 </head>
 
 <body>
@@ -419,6 +419,41 @@
       <button class="btn btn-outline hidden" id="reset-result-btn">↩ 다시 배정</button>
     </div>
 
+    <!-- 📺 BGM 유튜브 플레이어 -->
+    <div class="youtube-section">
+      <div class="youtube-grid">
+        <!-- Video 1 -->
+        <div class="youtube-card" data-video-id="V1gTYew5k4U" data-start="0">
+          <div class="youtube-poster" onclick="playYoutubeCard(this)">
+            <img src="https://img.youtube.com/vi/V1gTYew5k4U/maxresdefault.jpg" alt="Prelude To Battle" class="youtube-thumb" onerror="this.src='https://img.youtube.com/vi/V1gTYew5k4U/hqdefault.jpg'">
+            <div class="youtube-play-btn">
+              <svg viewBox="0 0 68 48"><path class="play-bg" d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,0.13,34,0,34,0S12.21,0.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#ff0000"/><path d="M 45,24 27,14 27,34" fill="#ffffff"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video 2 -->
+        <div class="youtube-card" data-video-id="MJzqr9qdopQ" data-start="0">
+          <div class="youtube-poster" onclick="playYoutubeCard(this)">
+            <img src="https://img.youtube.com/vi/MJzqr9qdopQ/maxresdefault.jpg" alt="Crossroads" class="youtube-thumb" onerror="this.src='https://img.youtube.com/vi/MJzqr9qdopQ/hqdefault.jpg'">
+            <div class="youtube-play-btn">
+              <svg viewBox="0 0 68 48"><path class="play-bg" d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,0.13,34,0,34,0S12.21,0.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#ff0000"/><path d="M 45,24 27,14 27,34" fill="#ffffff"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video 3 -->
+        <div class="youtube-card" data-video-id="gMG23c0qAFc" data-start="0">
+          <div class="youtube-poster" onclick="playYoutubeCard(this)">
+            <img src="https://img.youtube.com/vi/gMG23c0qAFc/maxresdefault.jpg" alt="League of Legends Music" class="youtube-thumb" onerror="this.src='https://img.youtube.com/vi/gMG23c0qAFc/hqdefault.jpg'">
+            <div class="youtube-play-btn">
+              <svg viewBox="0 0 68 48"><path class="play-bg" d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,0.13,34,0,34,0S12.21,0.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z" fill="#ff0000"/><path d="M 45,24 27,14 27,34" fill="#ffffff"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- ─── Firebase SDK ──────────────────────────────────────────── -->
@@ -429,6 +464,21 @@
   <script src="js/algorithm.js?v=2.3"></script>
 
   <script>
+    // ─── 유튜브 비디오 재생 ──────────────────────────────────────────
+    function playYoutubeCard(posterEl) {
+      const card = posterEl.closest('.youtube-card');
+      if (!card) return;
+      const videoId = card.getAttribute('data-video-id');
+      const start = card.getAttribute('data-start') || 0;
+
+      let src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+      if (parseInt(start, 10) > 0) {
+        src += `&start=${start}`;
+      }
+
+      card.innerHTML = `<iframe src="${src}" title="YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     //  ROOM.JS  –  대기실 및 팀 배정 로직
     // ════════════════════════════════════════════
